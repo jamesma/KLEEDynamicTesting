@@ -3,7 +3,7 @@ KLEEDynamicTesting
 
 Author: Jun Yan Ma (ma23@purdue.edu)
 
-Project Description: http://www.cs.purdue.edu/homes/kim1051/cs490/proj3/description.html
+Project Description: ProjectDescript.pdf (http://www.cs.purdue.edu/homes/kim1051/cs490/proj3/description.html)
 
 Part 1.1
 ========

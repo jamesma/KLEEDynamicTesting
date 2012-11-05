@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: printf
+KLEE: WARNING: silently concretizing (reason: floating point) expression (ReadLSB w32 0 a) to value 0 (/u/data/u93/ma23/Purdue/cs490st/proj3/part2/cannot_cover_all_feasible_paths/program.c:18)
+KLEE: WARNING: calling external: printf(27740712, 8)

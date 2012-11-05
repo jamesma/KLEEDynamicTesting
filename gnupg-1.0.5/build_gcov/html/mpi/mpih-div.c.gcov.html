@@ -1,0 +1,613 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - mpi/mpih-div.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">mpi</a> - mpih-div.c<span style="font-size: 80%;"> (source / <a href="mpih-div.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* mpihelp-div.c  -  MPI helper functions</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1994, 1996 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *      Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+<span class="lineNum">       4 </span>            :  *
+<span class="lineNum">       5 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       8 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       9 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">      10 </span>            :  * (at your option) any later version.
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      13 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      14 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      15 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      18 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      19 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * Note: This code is heavily based on the GNU MP Library.
+<span class="lineNum">      22 </span>            :  *       Actually it's the same code with only minor changes in the
+<span class="lineNum">      23 </span>            :  *       way the data is stored; this is to support the abstraction
+<span class="lineNum">      24 </span>            :  *       of an optional secure memory allocation which may be used
+<span class="lineNum">      25 </span>            :  *       to avoid revealing of sensitive data due to paging etc.
+<span class="lineNum">      26 </span>            :  *       The GNU MP Library itself is published under the LGPL;
+<span class="lineNum">      27 </span>            :  *       however I decided to publish this code under the plain GPL.
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      33 </span>            : #include &quot;mpi-internal.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;longlong.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #ifndef UMUL_TIME
+<span class="lineNum">      37 </span>            :   #define UMUL_TIME 1
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : #ifndef UDIV_TIME
+<span class="lineNum">      40 </span>            :   #define UDIV_TIME UMUL_TIME
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /* FIXME: We should be using invert_limb (or invert_normalized_limb)
+<span class="lineNum">      44 </span>            :  * here (not udiv_qrnnd).
+<span class="lineNum">      45 </span>            :  */
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : mpi_limb_t
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : mpihelp_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,</span>
+<span class="lineNum">      49 </span>            :                                       mpi_limb_t divisor_limb)
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span>            :     mpi_size_t i;
+<span class="lineNum">      52 </span>            :     mpi_limb_t n1, n0, r;
+<span class="lineNum">      53 </span>            :     int dummy;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :     /* Botch: Should this be handled at all?  Rely on callers?  */
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     if( !dividend_size )</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            :     /* If multiplication is much faster than division, and the
+<span class="lineNum">      60 </span>            :      * dividend is large, pre-invert the divisor, and use
+<span class="lineNum">      61 </span>            :      * only multiplications in the inner loop.
+<span class="lineNum">      62 </span>            :      *
+<span class="lineNum">      63 </span>            :      * This test should be read:
+<span class="lineNum">      64 </span>            :      *   Does it ever help to use udiv_qrnnd_preinv?
+<span class="lineNum">      65 </span>            :      *     &amp;&amp; Does what we save compensate for the inversion overhead?
+<span class="lineNum">      66 </span>            :      */
+<span class="lineNum">      67 </span>            :     if( UDIV_TIME &gt; (2 * UMUL_TIME + 6)
+<span class="lineNum">      68 </span>            :         &amp;&amp; (UDIV_TIME - (2 * UMUL_TIME + 6)) * dividend_size &gt; UDIV_TIME ) {
+<span class="lineNum">      69 </span>            :         int normalization_steps;
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :         count_leading_zeros( normalization_steps, divisor_limb );
+<span class="lineNum">      72 </span>            :         if( normalization_steps ) {
+<span class="lineNum">      73 </span>            :             mpi_limb_t divisor_limb_inverted;
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :             divisor_limb &lt;&lt;= normalization_steps;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :             /* Compute (2**2N - 2**N * DIVISOR_LIMB) / DIVISOR_LIMB.  The
+<span class="lineNum">      78 </span>            :              * result is a (N+1)-bit approximation to 1/DIVISOR_LIMB, with the
+<span class="lineNum">      79 </span>            :              * most significant bit (with weight 2**N) implicit.
+<span class="lineNum">      80 </span>            :              *
+<span class="lineNum">      81 </span>            :              * Special case for DIVISOR_LIMB == 100...000.
+<span class="lineNum">      82 </span>            :              */
+<span class="lineNum">      83 </span>            :             if( !(divisor_limb &lt;&lt; 1) )
+<span class="lineNum">      84 </span>            :                 divisor_limb_inverted = ~(mpi_limb_t)0;
+<span class="lineNum">      85 </span>            :             else
+<span class="lineNum">      86 </span>            :                 udiv_qrnnd(divisor_limb_inverted, dummy,
+<span class="lineNum">      87 </span>            :                            -divisor_limb, 0, divisor_limb);
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            :             n1 = dividend_ptr[dividend_size - 1];
+<span class="lineNum">      90 </span>            :             r = n1 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps);
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :             /* Possible optimization:
+<span class="lineNum">      93 </span>            :              * if (r == 0
+<span class="lineNum">      94 </span>            :              * &amp;&amp; divisor_limb &gt; ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">      95 </span>            :              *                 | (dividend_ptr[dividend_size - 2] &gt;&gt; ...)))
+<span class="lineNum">      96 </span>            :              * ...one division less...
+<span class="lineNum">      97 </span>            :              */
+<span class="lineNum">      98 </span>            :             for( i = dividend_size - 2; i &gt;= 0; i--) {
+<span class="lineNum">      99 </span>            :                 n0 = dividend_ptr[i];
+<span class="lineNum">     100 </span>            :                 UDIV_QRNND_PREINV(dummy, r, r,
+<span class="lineNum">     101 </span>            :                                    ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     102 </span>            :                           | (n0 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps))),
+<span class="lineNum">     103 </span>            :                           divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     104 </span>            :                 n1 = n0;
+<span class="lineNum">     105 </span>            :             }
+<span class="lineNum">     106 </span>            :             UDIV_QRNND_PREINV(dummy, r, r,
+<span class="lineNum">     107 </span>            :                               n1 &lt;&lt; normalization_steps,
+<span class="lineNum">     108 </span>            :                               divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     109 </span>            :             return r &gt;&gt; normalization_steps;
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span>            :         else {
+<span class="lineNum">     112 </span>            :             mpi_limb_t divisor_limb_inverted;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :             /* Compute (2**2N - 2**N * DIVISOR_LIMB) / DIVISOR_LIMB.  The
+<span class="lineNum">     115 </span>            :              * result is a (N+1)-bit approximation to 1/DIVISOR_LIMB, with the
+<span class="lineNum">     116 </span>            :              * most significant bit (with weight 2**N) implicit.
+<span class="lineNum">     117 </span>            :              *
+<span class="lineNum">     118 </span>            :              * Special case for DIVISOR_LIMB == 100...000.
+<span class="lineNum">     119 </span>            :              */
+<span class="lineNum">     120 </span>            :             if( !(divisor_limb &lt;&lt; 1) )
+<span class="lineNum">     121 </span>            :                 divisor_limb_inverted = ~(mpi_limb_t)0;
+<span class="lineNum">     122 </span>            :             else
+<span class="lineNum">     123 </span>            :                 udiv_qrnnd(divisor_limb_inverted, dummy,
+<span class="lineNum">     124 </span>            :                             -divisor_limb, 0, divisor_limb);
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :             i = dividend_size - 1;
+<span class="lineNum">     127 </span>            :             r = dividend_ptr[i];
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            :             if( r &gt;= divisor_limb )
+<span class="lineNum">     130 </span>            :                 r = 0;
+<span class="lineNum">     131 </span>            :             else
+<span class="lineNum">     132 </span>            :                 i--;
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            :             for( ; i &gt;= 0; i--) {
+<span class="lineNum">     135 </span>            :                 n0 = dividend_ptr[i];
+<span class="lineNum">     136 </span>            :                 UDIV_QRNND_PREINV(dummy, r, r,
+<span class="lineNum">     137 </span>            :                                   n0, divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     138 </span>            :             }
+<span class="lineNum">     139 </span>            :             return r;
+<span class="lineNum">     140 </span>            :         }
+<span class="lineNum">     141 </span>            :     }
+<span class="lineNum">     142 </span>            :     else {
+<span class="lineNum">     143 </span>            :         if( UDIV_NEEDS_NORMALIZATION ) {
+<span class="lineNum">     144 </span>            :             int normalization_steps;
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             count_leading_zeros(normalization_steps, divisor_limb);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             if( normalization_steps ) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                 divisor_limb &lt;&lt;= normalization_steps;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                 n1 = dividend_ptr[dividend_size - 1];</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 r = n1 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps);</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :                 /* Possible optimization:
+<span class="lineNum">     154 </span>            :                  * if (r == 0
+<span class="lineNum">     155 </span>            :                  * &amp;&amp; divisor_limb &gt; ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     156 </span>            :                  *                 | (dividend_ptr[dividend_size - 2] &gt;&gt; ...)))
+<span class="lineNum">     157 </span>            :                  * ...one division less...
+<span class="lineNum">     158 </span>            :                  */
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                 for(i = dividend_size - 2; i &gt;= 0; i--) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                     n0 = dividend_ptr[i];</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                     udiv_qrnnd (dummy, r, r,</span>
+<span class="lineNum">     162 </span>            :                                 ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     163 </span>            :                          | (n0 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps))),
+<span class="lineNum">     164 </span>            :                          divisor_limb);
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                     n1 = n0;</span>
+<span class="lineNum">     166 </span>            :                 }
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                 udiv_qrnnd (dummy, r, r,</span>
+<span class="lineNum">     168 </span>            :                             n1 &lt;&lt; normalization_steps,
+<span class="lineNum">     169 </span>            :                             divisor_limb);
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                 return r &gt;&gt; normalization_steps;</span>
+<span class="lineNum">     171 </span>            :             }
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            :         /* No normalization needed, either because udiv_qrnnd doesn't require
+<span class="lineNum">     174 </span>            :          * it, or because DIVISOR_LIMB is already normalized.  */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         i = dividend_size - 1;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         r = dividend_ptr[i];</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         if(r &gt;= divisor_limb)</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             r = 0;</span>
+<span class="lineNum">     180 </span>            :         else
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             i--;</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         for(; i &gt;= 0; i--) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             n0 = dividend_ptr[i];</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             udiv_qrnnd (dummy, r, r, n0, divisor_limb);</span>
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         return r;</span>
+<span class="lineNum">     188 </span>            :     }
+<span class="lineNum">     189 </span>            : }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : /* Divide num (NP/NSIZE) by den (DP/DSIZE) and write
+<span class="lineNum">     192 </span>            :  * the NSIZE-DSIZE least significant quotient limbs at QP
+<span class="lineNum">     193 </span>            :  * and the DSIZE long remainder at NP.  If QEXTRA_LIMBS is
+<span class="lineNum">     194 </span>            :  * non-zero, generate that many fraction bits and append them after the
+<span class="lineNum">     195 </span>            :  * other quotient limbs.
+<span class="lineNum">     196 </span>            :  * Return the most significant limb of the quotient, this is always 0 or 1.
+<span class="lineNum">     197 </span>            :  *
+<span class="lineNum">     198 </span>            :  * Preconditions:
+<span class="lineNum">     199 </span>            :  * 0. NSIZE &gt;= DSIZE.
+<span class="lineNum">     200 </span>            :  * 1. The most significant bit of the divisor must be set.
+<span class="lineNum">     201 </span>            :  * 2. QP must either not overlap with the input operands at all, or
+<span class="lineNum">     202 </span>            :  *    QP + DSIZE &gt;= NP must hold true.       (This means that it's
+<span class="lineNum">     203 </span>            :  *    possible to put the quotient in the high part of NUM, right after the
+<span class="lineNum">     204 </span>            :  *    remainder in NUM.
+<span class="lineNum">     205 </span>            :  * 3. NSIZE &gt;= DSIZE, even if QEXTRA_LIMBS is non-zero.
+<span class="lineNum">     206 </span>            :  */
+<a name="207"><span class="lineNum">     207 </span>            : </a>
+<span class="lineNum">     208 </span>            : mpi_limb_t
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 : mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,</span>
+<span class="lineNum">     210 </span>            :                 mpi_ptr_t np, mpi_size_t nsize,
+<span class="lineNum">     211 </span>            :                 mpi_ptr_t dp, mpi_size_t dsize)
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     mpi_limb_t most_significant_q_limb = 0;</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     switch(dsize) {</span>
+<span class="lineNum">     216 </span>            :       case 0:
+<span class="lineNum">     217 </span>            :         /* We are asked to divide by zero, so go ahead and do it!  (To make
+<span class="lineNum">     218 </span>            :            the compiler not remove this statement, return the value.)  */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         return 1 / dsize;</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :       case 1:
+<span class="lineNum">     222 </span>            :         {
+<span class="lineNum">     223 </span>            :             mpi_size_t i;
+<span class="lineNum">     224 </span>            :             mpi_limb_t n1;
+<span class="lineNum">     225 </span>            :             mpi_limb_t d;
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             d = dp[0];</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             n1 = np[nsize - 1];</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             if( n1 &gt;= d ) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 n1 -= d;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                 most_significant_q_limb = 1;</span>
+<span class="lineNum">     233 </span>            :             }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             qp += qextra_limbs;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             for( i = nsize - 2; i &gt;= 0; i--)</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 udiv_qrnnd( qp[i], n1, n1, np[i], d );</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             qp -= qextra_limbs;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             for( i = qextra_limbs - 1; i &gt;= 0; i-- )</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 udiv_qrnnd (qp[i], n1, n1, 0, d);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             np[0] = n1;</span>
+<span class="lineNum">     244 </span>            :         }
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :       case 2:
+<span class="lineNum">     248 </span>            :         {
+<span class="lineNum">     249 </span>            :             mpi_size_t i;
+<span class="lineNum">     250 </span>            :             mpi_limb_t n1, n0, n2;
+<span class="lineNum">     251 </span>            :             mpi_limb_t d1, d0;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :             np += nsize - 2;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             d1 = dp[1];</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             d0 = dp[0];</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             n1 = np[1];</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             n0 = np[0];</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             if( n1 &gt;= d1 &amp;&amp; (n1 &gt; d1 || n0 &gt;= d0) ) {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :                 sub_ddmmss (n1, n0, n1, n0, d1, d0);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :                 most_significant_q_limb = 1;</span>
+<span class="lineNum">     262 </span>            :             }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             for( i = qextra_limbs + nsize - 2 - 1; i &gt;= 0; i-- ) {</span>
+<span class="lineNum">     265 </span>            :                 mpi_limb_t q;
+<span class="lineNum">     266 </span>            :                 mpi_limb_t r;
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 if( i &gt;= qextra_limbs )</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                     np--;</span>
+<span class="lineNum">     270 </span>            :                 else
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                     np[0] = 0;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                 if( n1 == d1 ) {</span>
+<span class="lineNum">     274 </span>            :                     /* Q should be either 111..111 or 111..110.  Need special
+<span class="lineNum">     275 </span>            :                      * treatment of this rare case as normal division would
+<span class="lineNum">     276 </span>            :                      * give overflow.  */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :                     q = ~(mpi_limb_t)0;</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                     r = n0 + d1;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                     if( r &lt; d1 ) {   /* Carry in the addition? */</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                         add_ssaaaa( n1, n0, r - d0, np[0], 0, d0 );</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                         qp[i] = q;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     284 </span>            :                     }
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                     n1 = d0 - (d0 != 0?1:0);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                     n0 = -d0;</span>
+<span class="lineNum">     287 </span>            :                 }
+<span class="lineNum">     288 </span>            :                 else {
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                     udiv_qrnnd (q, r, n1, n0, d1);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                     umul_ppmm (n1, n0, d0, q);</span>
+<span class="lineNum">     291 </span>            :                 }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                 n2 = np[0];</span>
+<span class="lineNum">     294 </span>            :               q_test:
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                 if( n1 &gt; r || (n1 == r &amp;&amp; n0 &gt; n2) ) {</span>
+<span class="lineNum">     296 </span>            :                     /* The estimated Q was too large.  */
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                     q--;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                     sub_ddmmss (n1, n0, n1, n0, 0, d0);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                     r += d1;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                     if( r &gt;= d1 )    /* If not carry, test Q again.  */</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                         goto q_test;</span>
+<span class="lineNum">     302 </span>            :                 }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                 qp[i] = q;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 sub_ddmmss (n1, n0, r, n2, n1, n0);</span>
+<span class="lineNum">     306 </span>            :             }
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             np[1] = n1;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             np[0] = n0;</span>
+<span class="lineNum">     309 </span>            :         }
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            :       default:
+<span class="lineNum">     313 </span>            :         {
+<span class="lineNum">     314 </span>            :             mpi_size_t i;
+<span class="lineNum">     315 </span>            :             mpi_limb_t dX, d1, n0;
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             np += nsize - dsize;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             dX = dp[dsize - 1];</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             d1 = dp[dsize - 2];</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             n0 = np[dsize - 1];</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             if( n0 &gt;= dX ) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                 if(n0 &gt; dX || mpihelp_cmp(np, dp, dsize - 1) &gt;= 0 ) {</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                     mpihelp_sub_n(np, np, dp, dsize);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :                     n0 = np[dsize - 1];</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                     most_significant_q_limb = 1;</span>
+<span class="lineNum">     327 </span>            :                 }
+<span class="lineNum">     328 </span>            :             }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :             for( i = qextra_limbs + nsize - dsize - 1; i &gt;= 0; i--) {</span>
+<span class="lineNum">     331 </span>            :                 mpi_limb_t q;
+<span class="lineNum">     332 </span>            :                 mpi_limb_t n1, n2;
+<span class="lineNum">     333 </span>            :                 mpi_limb_t cy_limb;
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                 if( i &gt;= qextra_limbs ) {</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :                     np--;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :                     n2 = np[dsize];</span>
+<span class="lineNum">     338 </span>            :                 }
+<span class="lineNum">     339 </span>            :                 else {
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                     n2 = np[dsize - 1];</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                     MPN_COPY_DECR (np + 1, np, dsize - 1);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                     np[0] = 0;</span>
+<span class="lineNum">     343 </span>            :                 }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 if( n0 == dX ) {</span>
+<span class="lineNum">     346 </span>            :                     /* This might over-estimate q, but it's probably not worth
+<span class="lineNum">     347 </span>            :                      * the extra code here to find out.  */
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                     q = ~(mpi_limb_t)0;</span>
+<span class="lineNum">     349 </span>            :                 }
+<span class="lineNum">     350 </span>            :                 else {
+<span class="lineNum">     351 </span>            :                     mpi_limb_t r;
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :                     udiv_qrnnd(q, r, n0, np[dsize - 1], dX);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                     umul_ppmm(n1, n0, d1, q);</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :                     while( n1 &gt; r || (n1 == r &amp;&amp; n0 &gt; np[dsize - 2])) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                         q--;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                         r += dX;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                         if( r &lt; dX ) /* I.e. &quot;carry in previous addition?&quot; */</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                         n1 -= n0 &lt; d1;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                         n0 -= d1;</span>
+<span class="lineNum">     363 </span>            :                     }
+<span class="lineNum">     364 </span>            :                 }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :                 /* Possible optimization: We already have (q * n0) and (1 * n1)
+<span class="lineNum">     367 </span>            :                  * after the calculation of q.  Taking advantage of that, we
+<span class="lineNum">     368 </span>            :                  * could make this loop make two iterations less.  */
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 cy_limb = mpihelp_submul_1(np, dp, dsize, q);</span>
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                 if( n2 != cy_limb ) {</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :                     mpihelp_add_n(np, np, dp, dsize);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                     q--;</span>
+<span class="lineNum">     374 </span>            :                 }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 qp[i] = q;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 n0 = np[dsize - 1];</span>
+<span class="lineNum">     378 </span>            :             }
+<span class="lineNum">     379 </span>            :         }
+<span class="lineNum">     380 </span>            :     }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     return most_significant_q_limb;</span>
+<span class="lineNum">     383 </span>            : }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : /****************
+<span class="lineNum">     387 </span>            :  * Divide (DIVIDEND_PTR,,DIVIDEND_SIZE) by DIVISOR_LIMB.
+<span class="lineNum">     388 </span>            :  * Write DIVIDEND_SIZE limbs of quotient at QUOT_PTR.
+<span class="lineNum">     389 </span>            :  * Return the single-limb remainder.
+<span class="lineNum">     390 </span>            :  * There are no constraints on the value of the divisor.
+<span class="lineNum">     391 </span>            :  *
+<span class="lineNum">     392 </span>            :  * QUOT_PTR and DIVIDEND_PTR might point to the same limb.
+<span class="lineNum">     393 </span>            :  */
+<a name="394"><span class="lineNum">     394 </span>            : </a>
+<span class="lineNum">     395 </span>            : mpi_limb_t
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 : mpihelp_divmod_1( mpi_ptr_t quot_ptr,</span>
+<span class="lineNum">     397 </span>            :                   mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
+<span class="lineNum">     398 </span>            :                   mpi_limb_t divisor_limb)
+<span class="lineNum">     399 </span>            : {
+<span class="lineNum">     400 </span>            :     mpi_size_t i;
+<span class="lineNum">     401 </span>            :     mpi_limb_t n1, n0, r;
+<span class="lineNum">     402 </span>            :     int dummy;
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     if( !dividend_size )</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            :     /* If multiplication is much faster than division, and the
+<span class="lineNum">     408 </span>            :      * dividend is large, pre-invert the divisor, and use
+<span class="lineNum">     409 </span>            :      * only multiplications in the inner loop.
+<span class="lineNum">     410 </span>            :      *
+<span class="lineNum">     411 </span>            :      * This test should be read:
+<span class="lineNum">     412 </span>            :      * Does it ever help to use udiv_qrnnd_preinv?
+<span class="lineNum">     413 </span>            :      * &amp;&amp; Does what we save compensate for the inversion overhead?
+<span class="lineNum">     414 </span>            :      */
+<span class="lineNum">     415 </span>            :     if( UDIV_TIME &gt; (2 * UMUL_TIME + 6)
+<span class="lineNum">     416 </span>            :         &amp;&amp; (UDIV_TIME - (2 * UMUL_TIME + 6)) * dividend_size &gt; UDIV_TIME ) {
+<span class="lineNum">     417 </span>            :         int normalization_steps;
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :         count_leading_zeros( normalization_steps, divisor_limb );
+<span class="lineNum">     420 </span>            :         if( normalization_steps ) {
+<span class="lineNum">     421 </span>            :             mpi_limb_t divisor_limb_inverted;
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            :             divisor_limb &lt;&lt;= normalization_steps;
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            :             /* Compute (2**2N - 2**N * DIVISOR_LIMB) / DIVISOR_LIMB.  The
+<span class="lineNum">     426 </span>            :              * result is a (N+1)-bit approximation to 1/DIVISOR_LIMB, with the
+<span class="lineNum">     427 </span>            :              * most significant bit (with weight 2**N) implicit.
+<span class="lineNum">     428 </span>            :              */
+<span class="lineNum">     429 </span>            :             /* Special case for DIVISOR_LIMB == 100...000.  */
+<span class="lineNum">     430 </span>            :             if( !(divisor_limb &lt;&lt; 1) )
+<span class="lineNum">     431 </span>            :                 divisor_limb_inverted = ~(mpi_limb_t)0;
+<span class="lineNum">     432 </span>            :             else
+<span class="lineNum">     433 </span>            :                 udiv_qrnnd(divisor_limb_inverted, dummy,
+<span class="lineNum">     434 </span>            :                            -divisor_limb, 0, divisor_limb);
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :             n1 = dividend_ptr[dividend_size - 1];
+<span class="lineNum">     437 </span>            :             r = n1 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps);
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            :             /* Possible optimization:
+<span class="lineNum">     440 </span>            :              * if (r == 0
+<span class="lineNum">     441 </span>            :              * &amp;&amp; divisor_limb &gt; ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     442 </span>            :              *                 | (dividend_ptr[dividend_size - 2] &gt;&gt; ...)))
+<span class="lineNum">     443 </span>            :              * ...one division less...
+<span class="lineNum">     444 </span>            :              */
+<span class="lineNum">     445 </span>            :             for( i = dividend_size - 2; i &gt;= 0; i--) {
+<span class="lineNum">     446 </span>            :                 n0 = dividend_ptr[i];
+<span class="lineNum">     447 </span>            :                 UDIV_QRNND_PREINV( quot_ptr[i + 1], r, r,
+<span class="lineNum">     448 </span>            :                                    ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     449 </span>            :                          | (n0 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps))),
+<span class="lineNum">     450 </span>            :                               divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     451 </span>            :                 n1 = n0;
+<span class="lineNum">     452 </span>            :             }
+<span class="lineNum">     453 </span>            :             UDIV_QRNND_PREINV( quot_ptr[0], r, r,
+<span class="lineNum">     454 </span>            :                                n1 &lt;&lt; normalization_steps,
+<span class="lineNum">     455 </span>            :                                divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     456 </span>            :             return r &gt;&gt; normalization_steps;
+<span class="lineNum">     457 </span>            :         }
+<span class="lineNum">     458 </span>            :         else {
+<span class="lineNum">     459 </span>            :             mpi_limb_t divisor_limb_inverted;
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            :             /* Compute (2**2N - 2**N * DIVISOR_LIMB) / DIVISOR_LIMB.  The
+<span class="lineNum">     462 </span>            :              * result is a (N+1)-bit approximation to 1/DIVISOR_LIMB, with the
+<span class="lineNum">     463 </span>            :              * most significant bit (with weight 2**N) implicit.
+<span class="lineNum">     464 </span>            :              */
+<span class="lineNum">     465 </span>            :             /* Special case for DIVISOR_LIMB == 100...000.  */
+<span class="lineNum">     466 </span>            :             if( !(divisor_limb &lt;&lt; 1) )
+<span class="lineNum">     467 </span>            :                 divisor_limb_inverted = ~(mpi_limb_t) 0;
+<span class="lineNum">     468 </span>            :             else
+<span class="lineNum">     469 </span>            :                 udiv_qrnnd(divisor_limb_inverted, dummy,
+<span class="lineNum">     470 </span>            :                            -divisor_limb, 0, divisor_limb);
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :             i = dividend_size - 1;
+<span class="lineNum">     473 </span>            :             r = dividend_ptr[i];
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            :             if( r &gt;= divisor_limb )
+<span class="lineNum">     476 </span>            :                 r = 0;
+<span class="lineNum">     477 </span>            :             else
+<span class="lineNum">     478 </span>            :                 quot_ptr[i--] = 0;
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :             for( ; i &gt;= 0; i-- ) {
+<span class="lineNum">     481 </span>            :                 n0 = dividend_ptr[i];
+<span class="lineNum">     482 </span>            :                 UDIV_QRNND_PREINV( quot_ptr[i], r, r,
+<span class="lineNum">     483 </span>            :                                    n0, divisor_limb, divisor_limb_inverted);
+<span class="lineNum">     484 </span>            :             }
+<span class="lineNum">     485 </span>            :             return r;
+<span class="lineNum">     486 </span>            :         }
+<span class="lineNum">     487 </span>            :     }
+<span class="lineNum">     488 </span>            :     else {
+<span class="lineNum">     489 </span>            :         if(UDIV_NEEDS_NORMALIZATION) {
+<span class="lineNum">     490 </span>            :             int normalization_steps;
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :             count_leading_zeros (normalization_steps, divisor_limb);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :             if( normalization_steps ) {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                 divisor_limb &lt;&lt;= normalization_steps;</span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                 n1 = dividend_ptr[dividend_size - 1];</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                 r = n1 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps);</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :                 /* Possible optimization:
+<span class="lineNum">     500 </span>            :                  * if (r == 0
+<span class="lineNum">     501 </span>            :                  * &amp;&amp; divisor_limb &gt; ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     502 </span>            :                  *                 | (dividend_ptr[dividend_size - 2] &gt;&gt; ...)))
+<span class="lineNum">     503 </span>            :                  * ...one division less...
+<span class="lineNum">     504 </span>            :                  */
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 for( i = dividend_size - 2; i &gt;= 0; i--) {</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                     n0 = dividend_ptr[i];</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                     udiv_qrnnd (quot_ptr[i + 1], r, r,</span>
+<span class="lineNum">     508 </span>            :                              ((n1 &lt;&lt; normalization_steps)
+<span class="lineNum">     509 </span>            :                          | (n0 &gt;&gt; (BITS_PER_MPI_LIMB - normalization_steps))),
+<span class="lineNum">     510 </span>            :                                 divisor_limb);
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                     n1 = n0;</span>
+<span class="lineNum">     512 </span>            :                 }
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                 udiv_qrnnd (quot_ptr[0], r, r,</span>
+<span class="lineNum">     514 </span>            :                             n1 &lt;&lt; normalization_steps,
+<span class="lineNum">     515 </span>            :                             divisor_limb);
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 return r &gt;&gt; normalization_steps;</span>
+<span class="lineNum">     517 </span>            :             }
+<span class="lineNum">     518 </span>            :         }
+<span class="lineNum">     519 </span>            :         /* No normalization needed, either because udiv_qrnnd doesn't require
+<span class="lineNum">     520 </span>            :          * it, or because DIVISOR_LIMB is already normalized.  */
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         i = dividend_size - 1;</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         r = dividend_ptr[i];</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         if(r &gt;= divisor_limb)</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :             r = 0;</span>
+<span class="lineNum">     526 </span>            :         else
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :             quot_ptr[i--] = 0;</span>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         for(; i &gt;= 0; i--) {</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :             n0 = dividend_ptr[i];</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             udiv_qrnnd( quot_ptr[i], r, r, n0, divisor_limb );</span>
+<span class="lineNum">     532 </span>            :         }
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         return r;</span>
+<span class="lineNum">     534 </span>            :     }
+<span class="lineNum">     535 </span>            : }
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

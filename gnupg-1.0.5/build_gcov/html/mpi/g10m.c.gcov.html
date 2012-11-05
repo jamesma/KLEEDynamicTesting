@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - mpi/g10m.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">mpi</a> - g10m.c<span style="font-size: 80%;"> (source / <a href="g10m.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">35</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* g10m.c  -  Wrapper for MPI</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 1998 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      26 </span>            : 
+<a name="27"><span class="lineNum">      27 </span>            : /* FIXME: The modules should use functions from libgcrypt */</a>
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 : const char *g10m_revision_string(int dummy) { return &quot;$Revision: 1.7.2.2 $&quot;; }</span>
+<a name="30"><span class="lineNum">      30 </span>            : </a>
+<span class="lineNum">      31 </span>            : MPI
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 : g10m_new( unsigned nbits )</span>
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :     return mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">      35 </span>            : }
+<a name="36"><span class="lineNum">      36 </span>            : </a>
+<span class="lineNum">      37 </span>            : MPI
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : g10m_new_secure( unsigned nbits )</span>
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     return mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">      41 </span>            : }
+<a name="42"><span class="lineNum">      42 </span>            : </a>
+<span class="lineNum">      43 </span>            : void
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 : g10m_release( MPI a )</span>
+<span class="lineNum">      45 </span>            : {
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     mpi_free(a);</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 : }</span>
+<a name="48"><span class="lineNum">      48 </span>            : </a>
+<span class="lineNum">      49 </span>            : void
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 : g10m_resize( MPI a, unsigned nbits )</span>
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     mpi_resize( a, (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );</span>
+<a name="53"><span class="lineNum">      53 </span><span class="lineNoCov">          0 : }</span></a>
+<a name="54"><span class="lineNum">      54 </span>            : </a>
+<a name="55"><span class="lineNum">      55 </span><span class="lineNoCov">          0 : MPI  g10m_copy( MPI a )            { return mpi_copy( a );   }</span></a>
+<a name="56"><span class="lineNum">      56 </span><span class="lineNoCov">          0 : void g10m_swap( MPI a, MPI b)      { mpi_swap( a, b );       }</span></a>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : void g10m_set( MPI w, MPI u)       { mpi_set( w, u );        }</span>
+<a name="58"><span class="lineNum">      58 </span><span class="lineNoCov">          0 : void g10m_set_ui( MPI w, ulong u ) { mpi_set_ui( w, u ); }</span></a>
+<a name="59"><span class="lineNum">      59 </span>            : </a>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : int  g10m_cmp( MPI u, MPI v )       { return mpi_cmp( u, v ); }</span>
+<a name="61"><span class="lineNum">      61 </span><span class="lineNoCov">          0 : int  g10m_cmp_ui( MPI u, ulong v )  { return mpi_cmp_ui( u, v ); }</span></a>
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<a name="63"><span class="lineNum">      63 </span><span class="lineNoCov">          0 : void g10m_add(MPI w, MPI u, MPI v)        { mpi_add( w, u, v ); }</span></a>
+<a name="64"><span class="lineNum">      64 </span><span class="lineNoCov">          0 : void g10m_add_ui(MPI w, MPI u, ulong v )  { mpi_add_ui( w, u, v ); }</span></a>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : void g10m_sub( MPI w, MPI u, MPI v)       { mpi_sub( w, u, v ); }</span>
+<a name="66"><span class="lineNum">      66 </span><span class="lineNoCov">          0 : void g10m_sub_ui(MPI w, MPI u, ulong v )  { mpi_sub_ui( w, u, v ); }</span></a>
+<a name="67"><span class="lineNum">      67 </span>            : </a>
+<a name="68"><span class="lineNum">      68 </span><span class="lineNoCov">          0 : void g10m_mul( MPI w, MPI u, MPI v)          { mpi_mul( w, u, v ); }</span></a>
+<a name="69"><span class="lineNum">      69 </span><span class="lineNoCov">          0 : void g10m_mulm( MPI w, MPI u, MPI v, MPI m)  { mpi_mulm( w, u, v, m ); }</span></a>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : void g10m_mul_2exp( MPI w, MPI u, ulong cnt) { mpi_mul_2exp( w, u, cnt ); }</span>
+<a name="71"><span class="lineNum">      71 </span><span class="lineNoCov">          0 : void g10m_mul_ui(MPI w, MPI u, ulong v )     { mpi_mul_ui( w, u, v ); }</span></a>
+<span class="lineNum">      72 </span>            : 
+<a name="73"><span class="lineNum">      73 </span><span class="lineNoCov">          0 : void g10m_fdiv_q( MPI q, MPI d, MPI r )      { mpi_fdiv_q( q, d, r ); }</span></a>
+<span class="lineNum">      74 </span>            : 
+<a name="75"><span class="lineNum">      75 </span><span class="lineNoCov">          0 : void g10m_powm( MPI r, MPI b, MPI e, MPI m)  { mpi_powm( r, b, e, m );  }</span></a>
+<a name="76"><span class="lineNum">      76 </span>            : </a>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 : int  g10m_gcd( MPI g, MPI a, MPI b )    { return mpi_gcd( g, a, b ); }</span>
+<a name="78"><span class="lineNum">      78 </span><span class="lineNoCov">          0 : int  g10m_invm( MPI x, MPI u, MPI v )   { mpi_invm( x, u, v ); return 0; }</span></a>
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : unsigned g10m_get_nbits( MPI a )   { return mpi_get_nbits( a ); }</span>
+<a name="81"><span class="lineNum">      81 </span>            : </a>
+<span class="lineNum">      82 </span>            : unsigned
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : g10m_get_size( MPI a )</span>
+<span class="lineNum">      84 </span>            : {
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     return mpi_get_nlimbs( a ) * BITS_PER_MPI_LIMB;</span>
+<span class="lineNum">      86 </span>            : }
+<span class="lineNum">      87 </span>            : 
+<a name="88"><span class="lineNum">      88 </span>            : </a>
+<span class="lineNum">      89 </span>            : void
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : g10m_set_buffer( MPI a, const char *buffer, unsigned nbytes, int sign )</span>
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     mpi_set_buffer( a, buffer, nbytes, sign );</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

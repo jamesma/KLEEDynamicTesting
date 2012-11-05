@@ -1,0 +1,124 @@
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs.  It is not useful on other systems.
+# If it contains results you don't want to keep, you may remove or edit it.
+#
+# By default, configure uses ./config.cache as the cache file,
+# creating it if it does not exist already.  You can give configure
+# the --cache-file=FILE option to use a different cache file; that is
+# what configure does when it calls configure scripts in
+# subdirectories, so they share the cache.
+# Giving --cache-file=/dev/null disables caching, for debugging configure.
+# config.status only pays attention to the cache file if you give it the
+# --recheck option to rerun configure.
+#
+ac_cv_c_const=${ac_cv_c_const=yes}
+ac_cv_c_inline=${ac_cv_c_inline=inline}
+ac_cv_decl_sys_siglist=${ac_cv_decl_sys_siglist=yes}
+ac_cv_func___argz_count=${ac_cv_func___argz_count=yes}
+ac_cv_func___argz_next=${ac_cv_func___argz_next=yes}
+ac_cv_func___argz_stringify=${ac_cv_func___argz_stringify=yes}
+ac_cv_func_alloca_works=${ac_cv_func_alloca_works=yes}
+ac_cv_func_atexit=${ac_cv_func_atexit=yes}
+ac_cv_func_clock_gettime=${ac_cv_func_clock_gettime=no}
+ac_cv_func_fseeko=${ac_cv_func_fseeko=yes}
+ac_cv_func_getcwd=${ac_cv_func_getcwd=yes}
+ac_cv_func_gethrtime=${ac_cv_func_gethrtime=no}
+ac_cv_func_getpagesize=${ac_cv_func_getpagesize=yes}
+ac_cv_func_getrusage=${ac_cv_func_getrusage=yes}
+ac_cv_func_gettimeofday=${ac_cv_func_gettimeofday=yes}
+ac_cv_func_memicmp=${ac_cv_func_memicmp=no}
+ac_cv_func_memmove=${ac_cv_func_memmove=yes}
+ac_cv_func_mlock=${ac_cv_func_mlock=yes}
+ac_cv_func_mmap=${ac_cv_func_mmap=yes}
+ac_cv_func_mmap_fixed_mapped=${ac_cv_func_mmap_fixed_mapped=yes}
+ac_cv_func_munmap=${ac_cv_func_munmap=yes}
+ac_cv_func_nl_langinfo=${ac_cv_func_nl_langinfo=yes}
+ac_cv_func_putenv=${ac_cv_func_putenv=yes}
+ac_cv_func_raise=${ac_cv_func_raise=yes}
+ac_cv_func_rand=${ac_cv_func_rand=yes}
+ac_cv_func_setenv=${ac_cv_func_setenv=yes}
+ac_cv_func_setlocale=${ac_cv_func_setlocale=yes}
+ac_cv_func_setrlimit=${ac_cv_func_setrlimit=yes}
+ac_cv_func_sigaction=${ac_cv_func_sigaction=yes}
+ac_cv_func_sigprocmask=${ac_cv_func_sigprocmask=yes}
+ac_cv_func_stpcpy=${ac_cv_func_stpcpy=yes}
+ac_cv_func_strcasecmp=${ac_cv_func_strcasecmp=yes}
+ac_cv_func_strchr=${ac_cv_func_strchr=yes}
+ac_cv_func_strdup=${ac_cv_func_strdup=yes}
+ac_cv_func_strerror=${ac_cv_func_strerror=yes}
+ac_cv_func_strftime=${ac_cv_func_strftime=yes}
+ac_cv_func_stricmp=${ac_cv_func_stricmp=no}
+ac_cv_func_strlwr=${ac_cv_func_strlwr=no}
+ac_cv_func_strtoul=${ac_cv_func_strtoul=yes}
+ac_cv_func_tcgetattr=${ac_cv_func_tcgetattr=yes}
+ac_cv_func_vprintf=${ac_cv_func_vprintf=yes}
+ac_cv_func_wait4=${ac_cv_func_wait4=yes}
+ac_cv_func_waitpid=${ac_cv_func_waitpid=yes}
+ac_cv_have_dev_random=${ac_cv_have_dev_random=yes}
+ac_cv_have_dev_random_ioctl=${ac_cv_have_dev_random_ioctl=yes}
+ac_cv_header_alloca_h=${ac_cv_header_alloca_h=yes}
+ac_cv_header_argz_h=${ac_cv_header_argz_h=yes}
+ac_cv_header_direct_h=${ac_cv_header_direct_h=no}
+ac_cv_header_gdbm_h=${ac_cv_header_gdbm_h=yes}
+ac_cv_header_langinfo_h=${ac_cv_header_langinfo_h=yes}
+ac_cv_header_limits_h=${ac_cv_header_limits_h=yes}
+ac_cv_header_linux_random_h=${ac_cv_header_linux_random_h=yes}
+ac_cv_header_locale_h=${ac_cv_header_locale_h=yes}
+ac_cv_header_malloc_h=${ac_cv_header_malloc_h=yes}
+ac_cv_header_nl_types_h=${ac_cv_header_nl_types_h=yes}
+ac_cv_header_stdc=${ac_cv_header_stdc=yes}
+ac_cv_header_string_h=${ac_cv_header_string_h=yes}
+ac_cv_header_sys_ipc_h=${ac_cv_header_sys_ipc_h=yes}
+ac_cv_header_sys_param_h=${ac_cv_header_sys_param_h=yes}
+ac_cv_header_sys_shm_h=${ac_cv_header_sys_shm_h=yes}
+ac_cv_header_sys_stat_h=${ac_cv_header_sys_stat_h=yes}
+ac_cv_header_termio_h=${ac_cv_header_termio_h=yes}
+ac_cv_header_unistd_h=${ac_cv_header_unistd_h=yes}
+ac_cv_lib_gdbm_gdbm_firstkey=${ac_cv_lib_gdbm_gdbm_firstkey=yes}
+ac_cv_lib_nsl_gethostbyname=${ac_cv_lib_nsl_gethostbyname=yes}
+ac_cv_lib_socket_socket=${ac_cv_lib_socket_socket=no}
+ac_cv_mpi_config_done=${ac_cv_mpi_config_done=yes}
+ac_cv_mpi_extra_asm_modules=${ac_cv_mpi_extra_asm_modules=}
+ac_cv_mpi_sflags=${ac_cv_mpi_sflags=}
+ac_cv_path_NM=${ac_cv_path_NM='/usr/bin/nm -B'}
+ac_cv_path_install=${ac_cv_path_install='/usr/bin/install -c'}
+ac_cv_prog_AWK=${ac_cv_prog_AWK=gawk}
+ac_cv_prog_CC=${ac_cv_prog_CC=gcc}
+ac_cv_prog_CPP=${ac_cv_prog_CPP='gcc -E'}
+ac_cv_prog_DOCBOOK_TO_MAN=${ac_cv_prog_DOCBOOK_TO_MAN=no}
+ac_cv_prog_DOCBOOK_TO_TEXI=${ac_cv_prog_DOCBOOK_TO_TEXI=no}
+ac_cv_prog_RANLIB=${ac_cv_prog_RANLIB=ranlib}
+ac_cv_prog_cc_cross=${ac_cv_prog_cc_cross=no}
+ac_cv_prog_cc_g=${ac_cv_prog_cc_g=yes}
+ac_cv_prog_cc_works=${ac_cv_prog_cc_works=yes}
+ac_cv_prog_gcc=${ac_cv_prog_gcc=yes}
+ac_cv_prog_make_make_set=${ac_cv_prog_make_make_set=yes}
+ac_cv_sizeof_unsigned_int=${ac_cv_sizeof_unsigned_int=4}
+ac_cv_sizeof_unsigned_long=${ac_cv_sizeof_unsigned_long=8}
+ac_cv_sizeof_unsigned_long_long=${ac_cv_sizeof_unsigned_long_long=8}
+ac_cv_sizeof_unsigned_short=${ac_cv_sizeof_unsigned_short=2}
+ac_cv_sys_file_offset_bits=${ac_cv_sys_file_offset_bits=no}
+ac_cv_sys_global_symbol_pipe=${ac_cv_sys_global_symbol_pipe='sed -n -e '\''s/^.* [ABCDGISTUW] \([_A-Za-z][_A-Za-z0-9]*\)$/\1 \1/p'\'''}
+ac_cv_sys_large_files=${ac_cv_sys_large_files=no}
+ac_cv_sys_largefile_CC=${ac_cv_sys_largefile_CC=no}
+ac_cv_sys_largefile_source=${ac_cv_sys_largefile_source=no}
+ac_cv_sys_symbol_underscore=${ac_cv_sys_symbol_underscore=no}
+ac_cv_sys_xopen_source=${ac_cv_sys_xopen_source=no}
+ac_cv_type_off_t=${ac_cv_type_off_t=yes}
+ac_cv_type_signal=${ac_cv_type_signal=void}
+ac_cv_type_size_t=${ac_cv_type_size_t=yes}
+am_cv_val_LC_MESSAGES=${am_cv_val_LC_MESSAGES=yes}
+gnupg_cv_c_endian=${gnupg_cv_c_endian=little}
+gnupg_cv_export_dynamic=${gnupg_cv_export_dynamic=-Wl,-export-dynamic}
+gnupg_cv_have_broken_mlock=${gnupg_cv_have_broken_mlock=no}
+gnupg_cv_ipc_have_shm_lock=${gnupg_cv_ipc_have_shm_lock=yes}
+gnupg_cv_ipc_rmid_deferred_release=${gnupg_cv_ipc_rmid_deferred_release=yes}
+gnupg_cv_mkdir_takes_one_arg=${gnupg_cv_mkdir_takes_one_arg=no}
+gnupg_cv_typedef_byte=${gnupg_cv_typedef_byte=no}
+gnupg_cv_typedef_u16=${gnupg_cv_typedef_u16=no}
+gnupg_cv_typedef_u32=${gnupg_cv_typedef_u32=no}
+gnupg_cv_typedef_ulong=${gnupg_cv_typedef_ulong=yes}
+gnupg_cv_typedef_ushort=${gnupg_cv_typedef_ushort=yes}
+nls_cv_header_intl=${nls_cv_header_intl=intl/libintl.h}
+nls_cv_header_libgt=${nls_cv_header_libgt=intl/libgettext.h}

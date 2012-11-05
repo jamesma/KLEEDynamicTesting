@@ -1,0 +1,18 @@
+/home/pgbovine/klee/Release+Asserts/bin/klee -libc=uclibc -posix-runtime gpg.bc -no-armor A -sym-files 1 4
+PID: 19881
+Started: 2012-11-04 17:59:09
+BEGIN searcher description
+DFSSearcher
+END searcher description
+Finished: 2012-11-04 18:07:20
+Elapsed: 00:08:11
+KLEE: done: explored paths = 739
+KLEE: done: avg. constructs per query = 1054
+KLEE: done: total queries = 1920
+KLEE: done: valid queries = 633
+KLEE: done: invalid queries = 1287
+KLEE: done: query cex = 1920
+
+KLEE: done: total instructions = 43523043
+KLEE: done: completed paths = 739
+KLEE: done: generated tests = 715

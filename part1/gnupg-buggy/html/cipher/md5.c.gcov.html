@@ -1,0 +1,502 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/md5.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - md5.c<span style="font-size: 80%;"> (source / <a href="md5.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">180</td>
+            <td class="headerCovTableEntryLo">7.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">22.2 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* md5.c - MD5 Message-Digest Algorithm</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 1995, 1996, 1998, 1999,
+<span class="lineNum">       3 </span>            :  *               2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       4 </span>            :  *
+<span class="lineNum">       5 </span>            :  * This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       6 </span>            :  * under the terms of the GNU General Public License as published by the
+<span class="lineNum">       7 </span>            :  * Free Software Foundation; either version 2, or (at your option) any
+<span class="lineNum">       8 </span>            :  * later version.
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :  * along with this program; if not, write to the Free Software Foundation,
+<span class="lineNum">      17 </span>            :  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * According to the definition of MD5 in RFC 1321 from April 1992.
+<span class="lineNum">      20 </span>            :  * NOTE: This is *not* the same file as the one from glibc.
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : /* Written by Ulrich Drepper &lt;drepper@gnu.ai.mit.edu&gt;, 1995.  */
+<span class="lineNum">      23 </span>            : /* Heavily modified for GnuPG by &lt;wk@gnupg.org&gt; */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : /* Test values:
+<span class="lineNum">      26 </span>            :  * &quot;&quot;                  D4 1D 8C D9 8F 00 B2 04  E9 80 09 98 EC F8 42 7E
+<span class="lineNum">      27 </span>            :  * &quot;a&quot;                 0C C1 75 B9 C0 F1 B6 A8  31 C3 99 E2 69 77 26 61
+<span class="lineNum">      28 </span>            :  * &quot;abc                90 01 50 98 3C D2 4F B0  D6 96 3F 7D 28 E1 7F 72
+<span class="lineNum">      29 </span>            :  * &quot;message digest&quot;    F9 6B 69 7D 7C B7 93 8D  52 5A 2F 31 AA F1 61 D0
+<span class="lineNum">      30 </span>            :  */
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      37 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;memory.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;dynload.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : #include &quot;bithelp.h&quot;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : typedef struct {
+<span class="lineNum">      45 </span>            :     u32 A,B,C,D;          /* chaining variables */
+<span class="lineNum">      46 </span>            :     u32  nblocks;
+<span class="lineNum">      47 </span>            :     byte buf[64];
+<span class="lineNum">      48 </span>            :     int  count;
+<span class="lineNum">      49 </span>            : } MD5_CONTEXT;
+<span class="lineNum">      50 </span>            : 
+<a name="51"><span class="lineNum">      51 </span>            : </a>
+<span class="lineNum">      52 </span>            : static void
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : md5_init( MD5_CONTEXT *ctx )</span>
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     ctx-&gt;A = 0x67452301;</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     ctx-&gt;B = 0xefcdab89;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     ctx-&gt;C = 0x98badcfe;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     ctx-&gt;D = 0x10325476;</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     ctx-&gt;nblocks = 0;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     ctx-&gt;count = 0;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : /* These are the four functions used in the four steps of the MD5 algorithm
+<span class="lineNum">      68 </span>            :    and defined in the RFC 1321.  The first function is a little bit optimized
+<span class="lineNum">      69 </span>            :    (as found in Colin Plumbs public domain implementation).  */
+<span class="lineNum">      70 </span>            : /* #define FF(b, c, d) ((b &amp; c) | (~b &amp; d)) */
+<span class="lineNum">      71 </span>            : #define FF(b, c, d) (d ^ (b &amp; (c ^ d)))
+<span class="lineNum">      72 </span>            : #define FG(b, c, d) FF (d, b, c)
+<span class="lineNum">      73 </span>            : #define FH(b, c, d) (b ^ c ^ d)
+<span class="lineNum">      74 </span>            : #define FI(b, c, d) (c ^ (b | ~d))
+<a name="75"><span class="lineNum">      75 </span>            : </a>
+<span class="lineNum">      76 </span>            : static void
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 : burn_stack (int bytes)</span>
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            :     char buf[128];
+<span class="lineNum">      80 </span>            :     
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     memset (buf, 0, sizeof buf);</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     bytes -= sizeof buf;</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     if (bytes &gt; 0)</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         burn_stack (bytes);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : /****************
+<span class="lineNum">      90 </span>            :  * transform n*64 bytes
+<span class="lineNum">      91 </span>            :  */
+<a name="92"><span class="lineNum">      92 </span>            : static void</a>
+<span class="lineNum">      93 </span>            : /*transform( MD5_CONTEXT *ctx, const void *buffer, size_t len )*/
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : transform( MD5_CONTEXT *ctx, byte *data )</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span>            :     u32 correct_words[16];
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     u32 A = ctx-&gt;A;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     u32 B = ctx-&gt;B;</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     u32 C = ctx-&gt;C;</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     u32 D = ctx-&gt;D;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     u32 *cwp = correct_words;</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :   #ifdef BIG_ENDIAN_HOST
+<span class="lineNum">     104 </span>            :     { int i;
+<span class="lineNum">     105 </span>            :       byte *p2, *p1;
+<span class="lineNum">     106 </span>            :       for(i=0, p1=data, p2=(byte*)correct_words; i &lt; 16; i++, p2 += 4 ) {
+<span class="lineNum">     107 </span>            :         p2[3] = *p1++;
+<span class="lineNum">     108 </span>            :         p2[2] = *p1++;
+<span class="lineNum">     109 </span>            :         p2[1] = *p1++;
+<span class="lineNum">     110 </span>            :         p2[0] = *p1++;
+<span class="lineNum">     111 </span>            :       }
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            :   #else
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     memcpy( correct_words, data, 64 );</span>
+<span class="lineNum">     115 </span>            :   #endif
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : #define OP(a, b, c, d, s, T)                                        \
+<span class="lineNum">     119 </span>            :   do                                                                \
+<span class="lineNum">     120 </span>            :     {                                                               \
+<span class="lineNum">     121 </span>            :       a += FF (b, c, d) + (*cwp++) + T;             \
+<span class="lineNum">     122 </span>            :       a = rol(a, s);                                                \
+<span class="lineNum">     123 </span>            :       a += b;                                                       \
+<span class="lineNum">     124 </span>            :     }                                                               \
+<span class="lineNum">     125 </span>            :   while (0)
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     /* Before we start, one word about the strange constants.
+<span class="lineNum">     128 </span>            :        They are defined in RFC 1321 as
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :        T[i] = (int) (4294967296.0 * fabs (sin (i))), i=1..64
+<span class="lineNum">     131 </span>            :      */
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :     /* Round 1.  */
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     OP (A, B, C, D,  7, 0xd76aa478);</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     OP (D, A, B, C, 12, 0xe8c7b756);</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     OP (C, D, A, B, 17, 0x242070db);</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     OP (B, C, D, A, 22, 0xc1bdceee);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     OP (A, B, C, D,  7, 0xf57c0faf);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     OP (D, A, B, C, 12, 0x4787c62a);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     OP (C, D, A, B, 17, 0xa8304613);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     OP (B, C, D, A, 22, 0xfd469501);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     OP (A, B, C, D,  7, 0x698098d8);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     OP (D, A, B, C, 12, 0x8b44f7af);</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     OP (C, D, A, B, 17, 0xffff5bb1);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     OP (B, C, D, A, 22, 0x895cd7be);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     OP (A, B, C, D,  7, 0x6b901122);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     OP (D, A, B, C, 12, 0xfd987193);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     OP (C, D, A, B, 17, 0xa679438e);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     OP (B, C, D, A, 22, 0x49b40821);</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : #undef OP
+<span class="lineNum">     152 </span>            : #define OP(f, a, b, c, d, k, s, T)  \
+<span class="lineNum">     153 </span>            :     do                                                                \
+<span class="lineNum">     154 </span>            :       {                                                               \
+<span class="lineNum">     155 </span>            :         a += f (b, c, d) + correct_words[k] + T;                      \
+<span class="lineNum">     156 </span>            :         a = rol(a, s);                                                \
+<span class="lineNum">     157 </span>            :         a += b;                                                       \
+<span class="lineNum">     158 </span>            :       }                                                               \
+<span class="lineNum">     159 </span>            :     while (0)
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            :     /* Round 2.  */
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     OP (FG, A, B, C, D,  1,  5, 0xf61e2562);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     OP (FG, D, A, B, C,  6,  9, 0xc040b340);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     OP (FG, C, D, A, B, 11, 14, 0x265e5a51);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     OP (FG, B, C, D, A,  0, 20, 0xe9b6c7aa);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     OP (FG, A, B, C, D,  5,  5, 0xd62f105d);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     OP (FG, D, A, B, C, 10,  9, 0x02441453);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     OP (FG, C, D, A, B, 15, 14, 0xd8a1e681);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     OP (FG, B, C, D, A,  4, 20, 0xe7d3fbc8);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     OP (FG, A, B, C, D,  9,  5, 0x21e1cde6);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     OP (FG, D, A, B, C, 14,  9, 0xc33707d6);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     OP (FG, C, D, A, B,  3, 14, 0xf4d50d87);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     OP (FG, B, C, D, A,  8, 20, 0x455a14ed);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     OP (FG, A, B, C, D, 13,  5, 0xa9e3e905);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     OP (FG, D, A, B, C,  2,  9, 0xfcefa3f8);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     OP (FG, C, D, A, B,  7, 14, 0x676f02d9);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     OP (FG, B, C, D, A, 12, 20, 0x8d2a4c8a);</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :     /* Round 3.  */
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     OP (FH, A, B, C, D,  5,  4, 0xfffa3942);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     OP (FH, D, A, B, C,  8, 11, 0x8771f681);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     OP (FH, C, D, A, B, 11, 16, 0x6d9d6122);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     OP (FH, B, C, D, A, 14, 23, 0xfde5380c);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     OP (FH, A, B, C, D,  1,  4, 0xa4beea44);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     OP (FH, D, A, B, C,  4, 11, 0x4bdecfa9);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     OP (FH, C, D, A, B,  7, 16, 0xf6bb4b60);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     OP (FH, B, C, D, A, 10, 23, 0xbebfbc70);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     OP (FH, A, B, C, D, 13,  4, 0x289b7ec6);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     OP (FH, D, A, B, C,  0, 11, 0xeaa127fa);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     OP (FH, C, D, A, B,  3, 16, 0xd4ef3085);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     OP (FH, B, C, D, A,  6, 23, 0x04881d05);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     OP (FH, A, B, C, D,  9,  4, 0xd9d4d039);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     OP (FH, D, A, B, C, 12, 11, 0xe6db99e5);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     OP (FH, C, D, A, B, 15, 16, 0x1fa27cf8);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     OP (FH, B, C, D, A,  2, 23, 0xc4ac5665);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* Round 4.  */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     OP (FI, A, B, C, D,  0,  6, 0xf4292244);</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     OP (FI, D, A, B, C,  7, 10, 0x432aff97);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     OP (FI, C, D, A, B, 14, 15, 0xab9423a7);</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     OP (FI, B, C, D, A,  5, 21, 0xfc93a039);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     OP (FI, A, B, C, D, 12,  6, 0x655b59c3);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     OP (FI, D, A, B, C,  3, 10, 0x8f0ccc92);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     OP (FI, C, D, A, B, 10, 15, 0xffeff47d);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     OP (FI, B, C, D, A,  1, 21, 0x85845dd1);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     OP (FI, A, B, C, D,  8,  6, 0x6fa87e4f);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     OP (FI, D, A, B, C, 15, 10, 0xfe2ce6e0);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     OP (FI, C, D, A, B,  6, 15, 0xa3014314);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     OP (FI, B, C, D, A, 13, 21, 0x4e0811a1);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     OP (FI, A, B, C, D,  4,  6, 0xf7537e82);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     OP (FI, D, A, B, C, 11, 10, 0xbd3af235);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     OP (FI, C, D, A, B,  2, 15, 0x2ad7d2bb);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     OP (FI, B, C, D, A,  9, 21, 0xeb86d391);</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     /* Put checksum in context given as argument.  */
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     ctx-&gt;A += A;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     ctx-&gt;B += B;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     ctx-&gt;C += C;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     ctx-&gt;D += D;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : /* The routine updates the message-digest context to
+<span class="lineNum">     225 </span>            :  * account for the presence of each of the characters inBuf[0..inLen-1]
+<span class="lineNum">     226 </span>            :  * in the message whose digest is being computed.
+<a name="227"><span class="lineNum">     227 </span>            :  */</a>
+<span class="lineNum">     228 </span>            : static void
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 : md5_write( MD5_CONTEXT *hd, byte *inbuf, size_t inlen)</span>
+<span class="lineNum">     230 </span>            : {
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     if( hd-&gt;count == 64 ) { /* flush the buffer */</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         transform( hd, hd-&gt;buf );</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         burn_stack (80+6*sizeof(void*));</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         hd-&gt;count = 0;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         hd-&gt;nblocks++;</span>
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     if( !inbuf )</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     if( hd-&gt;count ) {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         for( ; inlen &amp;&amp; hd-&gt;count &lt; 64; inlen-- )</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = *inbuf++;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         md5_write( hd, NULL, 0 );</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if( !inlen )</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     while( inlen &gt;= 64 ) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         transform( hd, inbuf );</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         hd-&gt;count = 0;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         hd-&gt;nblocks++;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         inlen -= 64;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         inbuf += 64;</span>
+<span class="lineNum">     253 </span>            :     }
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     burn_stack (80+6*sizeof(void*));</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     for( ; inlen &amp;&amp; hd-&gt;count &lt; 64; inlen-- )</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = *inbuf++;</span>
+<span class="lineNum">     257 </span>            : }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : /* The routine final terminates the message-digest computation and
+<span class="lineNum">     262 </span>            :  * ends with the desired message digest in mdContext-&gt;digest[0...15].
+<span class="lineNum">     263 </span>            :  * The handle is prepared for a new MD5 cycle.
+<span class="lineNum">     264 </span>            :  * Returns 16 bytes representing the digest.
+<span class="lineNum">     265 </span>            :  */
+<a name="266"><span class="lineNum">     266 </span>            : </a>
+<span class="lineNum">     267 </span>            : static void
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 : md5_final( MD5_CONTEXT *hd )</span>
+<span class="lineNum">     269 </span>            : {
+<span class="lineNum">     270 </span>            :     u32 t, msb, lsb;
+<span class="lineNum">     271 </span>            :     byte *p;
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     md5_write(hd, NULL, 0); /* flush */;</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     t = hd-&gt;nblocks;</span>
+<span class="lineNum">     276 </span>            :     /* multiply by 64 to make a byte count */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     lsb = t &lt;&lt; 6;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     msb = t &gt;&gt; 26;</span>
+<span class="lineNum">     279 </span>            :     /* add the count */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     t = lsb;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if( (lsb += hd-&gt;count) &lt; t )</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         msb++;</span>
+<span class="lineNum">     283 </span>            :     /* multiply by 8 to make a bit count */
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     t = lsb;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     lsb &lt;&lt;= 3;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     msb &lt;&lt;= 3;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     msb |= t &gt;&gt; 29;</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     if( hd-&gt;count &lt; 56 ) { /* enough room */</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = 0x80; /* pad */</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         while( hd-&gt;count &lt; 56 )</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = 0;  /* pad */</span>
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span>            :     else { /* need one extra block */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = 0x80; /* pad character */</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         while( hd-&gt;count &lt; 64 )</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = 0;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         md5_write(hd, NULL, 0);  /* flush */;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         memset(hd-&gt;buf, 0, 56 ); /* fill next block with zeroes */</span>
+<span class="lineNum">     300 </span>            :     }
+<span class="lineNum">     301 </span>            :     /* append the 64 bit count */
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     hd-&gt;buf[56] = lsb           ;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     hd-&gt;buf[57] = lsb &gt;&gt;  8;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     hd-&gt;buf[58] = lsb &gt;&gt; 16;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     hd-&gt;buf[59] = lsb &gt;&gt; 24;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     hd-&gt;buf[60] = msb           ;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     hd-&gt;buf[61] = msb &gt;&gt;  8;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     hd-&gt;buf[62] = msb &gt;&gt; 16;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     hd-&gt;buf[63] = msb &gt;&gt; 24;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     transform( hd, hd-&gt;buf );</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     burn_stack (80+6*sizeof(void*));</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     p = hd-&gt;buf;</span>
+<span class="lineNum">     314 </span>            :   #ifdef BIG_ENDIAN_HOST
+<span class="lineNum">     315 </span>            :     #define X(a) do { *p++ = hd-&gt;##a   ; *p++ = hd-&gt;##a &gt;&gt; 8;      \
+<span class="lineNum">     316 </span>            :                       *p++ = hd-&gt;##a &gt;&gt; 16; *p++ = hd-&gt;##a &gt;&gt; 24; } while(0)
+<span class="lineNum">     317 </span>            :   #else /* little endian */
+<span class="lineNum">     318 </span>            :     /*#define X(a) do { *(u32*)p = hd-&gt;##a ; p += 4; } while(0)*/
+<span class="lineNum">     319 </span>            :     /* Unixware's cpp doesn't like the above construct so we do it his way:
+<span class="lineNum">     320 </span>            :      * (reported by Allan Clark) */
+<span class="lineNum">     321 </span>            :     #define X(a) do { *(u32*)p = (*hd).a ; p += 4; } while(0)
+<span class="lineNum">     322 </span>            :   #endif
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     X(A);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     X(B);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     X(C);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     X(D);</span>
+<span class="lineNum">     327 </span>            :   #undef X
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 : }</span>
+<a name="330"><span class="lineNum">     330 </span>            : </a>
+<span class="lineNum">     331 </span>            : static byte *
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 : md5_read( MD5_CONTEXT *hd )</span>
+<span class="lineNum">     333 </span>            : {
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     return hd-&gt;buf;</span>
+<span class="lineNum">     335 </span>            : }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : /****************
+<span class="lineNum">     338 </span>            :  * Return some information about the algorithm.  We need algo here to
+<span class="lineNum">     339 </span>            :  * distinguish different flavors of the algorithm.
+<span class="lineNum">     340 </span>            :  * Returns: A pointer to string describing the algorithm or NULL if
+<span class="lineNum">     341 </span>            :  *          the ALGO is invalid.
+<a name="342"><span class="lineNum">     342 </span>            :  */</a>
+<span class="lineNum">     343 </span>            : static const char *
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 : md5_get_info( int algo, size_t *contextsize,</span>
+<span class="lineNum">     345 </span>            :                byte **r_asnoid, int *r_asnlen, int *r_mdlen,
+<span class="lineNum">     346 </span>            :                void (**r_init)( void *c ),
+<span class="lineNum">     347 </span>            :                void (**r_write)( void *c, byte *buf, size_t nbytes ),
+<span class="lineNum">     348 </span>            :                void (**r_final)( void *c ),
+<span class="lineNum">     349 </span>            :                byte *(**r_read)( void *c )
+<span class="lineNum">     350 </span>            :              )
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span>            :     static byte asn[18] = /* Object ID is 1.2.840.113549.2.5 */
+<span class="lineNum">     353 </span>            :                     { 0x30, 0x20, 0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86,0x48,
+<span class="lineNum">     354 </span>            :                       0x86, 0xf7, 0x0d, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     if( algo != 1 )</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     *contextsize = sizeof(MD5_CONTEXT);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     *r_asnoid = asn;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     *r_asnlen = DIM(asn);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     *r_mdlen = 16;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     *(void  (**)(MD5_CONTEXT *))r_init                 = md5_init;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     *(void  (**)(MD5_CONTEXT *, byte*, size_t))r_write = md5_write;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     *(void  (**)(MD5_CONTEXT *))r_final                = md5_final;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     *(byte *(**)(MD5_CONTEXT *))r_read                 = md5_read;</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     return &quot;MD5&quot;;</span>
+<span class="lineNum">     369 </span>            : }
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     373 </span>            : static
+<span class="lineNum">     374 </span>            : #endif
+<span class="lineNum">     375 </span>            : const char * const gnupgext_version = &quot;MD5 ($Revision: 1.15.2.4 $)&quot;;
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            : static struct {
+<span class="lineNum">     378 </span>            :     int class;
+<span class="lineNum">     379 </span>            :     int version;
+<span class="lineNum">     380 </span>            :     int  value;
+<span class="lineNum">     381 </span>            :     void (*func)(void);
+<span class="lineNum">     382 </span>            : } func_table[] = {
+<span class="lineNum">     383 </span>            :     { 10, 1, 0, (void(*)(void))md5_get_info },
+<span class="lineNum">     384 </span>            :     { 11, 1, 1 },
+<span class="lineNum">     385 </span>            : };
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     389 </span>            : static
+<a name="390"><span class="lineNum">     390 </span>            : #endif</a>
+<span class="lineNum">     391 </span>            : void *
+<span class="lineNum">     392 </span><span class="lineCov">         64 : gnupgext_enum_func( int what, int *sequence, int *class, int *vers )</span>
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span>            :     void *ret;
+<span class="lineNum">     395 </span><span class="lineCov">         64 :     int i = *sequence;</span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :     do {
+<span class="lineNum">     398 </span><span class="lineCov">        192 :         if( i &gt;= DIM(func_table) || i &lt; 0 )</span>
+<span class="lineNum">     399 </span><span class="lineCov">         64 :             return NULL;</span>
+<span class="lineNum">     400 </span><span class="lineCov">        128 :         *class = func_table[i].class;</span>
+<span class="lineNum">     401 </span><span class="lineCov">        128 :         *vers  = func_table[i].version;</span>
+<span class="lineNum">     402 </span><span class="lineCov">        128 :         switch( *class ) {</span>
+<span class="lineNum">     403 </span><span class="lineCov">         64 :           case 11: case 21: case 31: ret = &amp;func_table[i].value; break;</span>
+<span class="lineNum">     404 </span><span class="lineCov">         64 :           default:                   ret = func_table[i].func; break;</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span><span class="lineCov">        128 :         i++;</span>
+<span class="lineNum">     407 </span><span class="lineCov">        128 :     } while( what &amp;&amp; what != *class );</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     *sequence = i;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     411 </span>            : }
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            : 
+<a name="416"><span class="lineNum">     416 </span>            : #ifndef IS_MODULE</a>
+<span class="lineNum">     417 </span>            : void
+<span class="lineNum">     418 </span><span class="lineCov">         64 : md5_constructor(void)</span>
+<span class="lineNum">     419 </span>            : {
+<span class="lineNum">     420 </span><span class="lineCov">         64 :     register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );</span>
+<span class="lineNum">     421 </span><span class="lineCov">         64 : }</span>
+<span class="lineNum">     422 </span>            : #endif
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            : /* end of file */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

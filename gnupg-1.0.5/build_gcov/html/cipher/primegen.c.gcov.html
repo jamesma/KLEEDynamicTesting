@@ -1,0 +1,654 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/primegen.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - primegen.c<span style="font-size: 80%;"> (source / <a href="primegen.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">315</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* primegen.c - prime number generator</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * ***********************************************************************
+<span class="lineNum">      21 </span>            :  * The algorithm used to generate practically save primes is due to
+<span class="lineNum">      22 </span>            :  * Lim and Lee as described in the CRYPTO '97 proceedings (ISBN3540633847)
+<span class="lineNum">      23 </span>            :  * page 260.
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      31 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;cipher.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : static int no_of_small_prime_numbers;
+<span class="lineNum">      36 </span>            : static MPI gen_prime( unsigned  nbits, int mode, int randomlevel );
+<span class="lineNum">      37 </span>            : static int check_prime( MPI prime, MPI val_2 );
+<span class="lineNum">      38 </span>            : static int is_prime( MPI n, int steps, int *count );
+<span class="lineNum">      39 </span>            : static void m_out_of_n( char *array, int m, int n );
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static void (*progress_cb) ( void *, int );
+<span class="lineNum">      42 </span>            : static void *progress_cb_data;
+<a name="43"><span class="lineNum">      43 </span>            : </a>
+<span class="lineNum">      44 </span>            : void
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 : register_primegen_progress ( void (*cb)( void *, int), void *cb_data )</span>
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     progress_cb = cb;</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     progress_cb_data = cb_data;</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      50 </span>            : 
+<a name="51"><span class="lineNum">      51 </span>            : </a>
+<span class="lineNum">      52 </span>            : static void
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : progress( int c )</span>
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     if ( progress_cb )</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         progress_cb ( progress_cb_data, c );</span>
+<span class="lineNum">      57 </span>            :     else
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :         fputc( c, stderr );</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /****************
+<span class="lineNum">      63 </span>            :  * Generate a prime number (stored in secure memory)
+<a name="64"><span class="lineNum">      64 </span>            :  */</a>
+<span class="lineNum">      65 </span>            : MPI
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 : generate_secret_prime( unsigned  nbits )</span>
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span>            :     MPI prime;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     prime = gen_prime( nbits, 1, 2 );</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     progress('\n');</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     return prime;</span>
+<span class="lineNum">      73 </span>            : }
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<span class="lineNum">      75 </span>            : MPI
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : generate_public_prime( unsigned  nbits )</span>
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :     MPI prime;
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     prime = gen_prime( nbits, 0, 2 );</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     progress('\n');</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     return prime;</span>
+<span class="lineNum">      83 </span>            : }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : /****************
+<span class="lineNum">      87 </span>            :  * We do not need to use the strongest RNG because we gain no extra
+<span class="lineNum">      88 </span>            :  * security from it - The prime number is public and we could also
+<span class="lineNum">      89 </span>            :  * offer the factors for those who are willing to check that it is
+<span class="lineNum">      90 </span>            :  * indeed a strong prime.
+<span class="lineNum">      91 </span>            :  *
+<span class="lineNum">      92 </span>            :  * mode 0: Standard
+<span class="lineNum">      93 </span>            :  *      1: Make sure that at least one factor is of size qbits.
+<a name="94"><span class="lineNum">      94 </span>            :  */</a>
+<span class="lineNum">      95 </span>            : MPI
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : generate_elg_prime( int mode, unsigned pbits, unsigned qbits,</span>
+<span class="lineNum">      97 </span>            :                     MPI g, MPI **ret_factors )
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span>            :     int n;  /* number of factors */
+<span class="lineNum">     100 </span>            :     int m;  /* number of primes in pool */
+<span class="lineNum">     101 </span>            :     unsigned fbits; /* length of prime factors */
+<span class="lineNum">     102 </span>            :     MPI *factors; /* current factors */
+<span class="lineNum">     103 </span>            :     MPI *pool;  /* pool of primes */
+<span class="lineNum">     104 </span>            :     MPI q;      /* first prime factor (variable)*/
+<span class="lineNum">     105 </span>            :     MPI prime;  /* prime test value */
+<span class="lineNum">     106 </span>            :     MPI q_factor; /* used for mode 1 */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     byte *perms = NULL;</span>
+<span class="lineNum">     108 </span>            :     int i, j;
+<span class="lineNum">     109 </span>            :     int count1, count2;
+<span class="lineNum">     110 </span>            :     unsigned nprime;
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     unsigned req_qbits = qbits; /* the requested q bits size */</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     MPI val_2  = mpi_alloc_set_ui( 2 );</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* find number of needed prime factors */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     for(n=1; (pbits - qbits - 1) / n  &gt;= qbits; n++ )</span>
+<span class="lineNum">     116 </span>            :         ;
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     n--;</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if( !n || (mode==1 &amp;&amp; n &lt; 2) )</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         log_fatal(&quot;can't gen prime with pbits=%u qbits=%u\n&quot;, pbits, qbits );</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if( mode == 1 ) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         n--;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         fbits = (pbits - 2*req_qbits -1) / n;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         qbits =  pbits - req_qbits - n*fbits;</span>
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            :     else {
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         fbits = (pbits - req_qbits -1) / n;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         qbits = pbits - n*fbits;</span>
+<span class="lineNum">     128 </span>            :     }
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     if( DBG_CIPHER )</span>
+<span class="lineNum">     130 </span>            :         log_debug(&quot;gen prime: pbits=%u qbits=%u fbits=%u/%u n=%d\n&quot;,
+<span class="lineNum">     131 </span>            :                     pbits, req_qbits, qbits, fbits, n  );
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     prime = mpi_alloc( (pbits + BITS_PER_MPI_LIMB - 1) /  BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     q = gen_prime( qbits, 0, 0 );</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     q_factor = mode==1? gen_prime( req_qbits, 0, 0 ) : NULL;</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     /* allocate an array to hold the factors + 2 for later usage */
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     factors = m_alloc_clear( (n+2) * sizeof *factors );</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :     /* make a pool of 3n+5 primes (this is an arbitrary value) */
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     m = n*3+5;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     if( mode == 1 )</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         m += 5; /* need some more for DSA */</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if( m &lt; 25 )</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         m = 25;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     pool = m_alloc_clear( m * sizeof *pool );</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     /* permutate over the pool of primes */
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     count1=count2=0;</span>
+<span class="lineNum">     149 </span>            :     do {
+<span class="lineNum">     150 </span>            :       next_try:
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         if( !perms ) {</span>
+<span class="lineNum">     152 </span>            :             /* allocate new primes */
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             for(i=0; i &lt; m; i++ ) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                 mpi_free(pool[i]);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                 pool[i] = NULL;</span>
+<span class="lineNum">     156 </span>            :             }
+<span class="lineNum">     157 </span>            :             /* init m_out_of_n() */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             perms = m_alloc_clear( m );</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             for(i=0; i &lt; n; i++ ) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 perms[i] = 1;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                 pool[i] = gen_prime( fbits, 0, 0 );</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 factors[i] = pool[i];</span>
+<span class="lineNum">     163 </span>            :             }
+<span class="lineNum">     164 </span>            :         }
+<span class="lineNum">     165 </span>            :         else {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :             m_out_of_n( perms, n, m );</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             for(i=j=0; i &lt; m &amp;&amp; j &lt; n ; i++ )</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                 if( perms[i] ) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                     if( !pool[i] )</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                         pool[i] = gen_prime( fbits, 0, 0 );</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                     factors[j++] = pool[i];</span>
+<span class="lineNum">     172 </span>            :                 }
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             if( i == n ) {</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                 m_free(perms); perms = NULL;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                 progress('!');</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                 goto next_try;  /* allocate new primes */</span>
+<span class="lineNum">     177 </span>            :             }
+<span class="lineNum">     178 </span>            :         }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         mpi_set( prime, q );</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         mpi_mul_ui( prime, prime, 2 );</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         if( mode == 1 )</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             mpi_mul( prime, prime, q_factor );</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         for(i=0; i &lt; n; i++ )</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             mpi_mul( prime, prime, factors[i] );</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         mpi_add_ui( prime, prime, 1 );</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         nprime = mpi_get_nbits(prime);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if( nprime &lt; pbits ) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             if( ++count1 &gt; 20 ) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 count1 = 0;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                 qbits++;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                 progress('&gt;');</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                 mpi_free (q);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                 q = gen_prime( qbits, 0, 0 );</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 goto next_try;</span>
+<span class="lineNum">     196 </span>            :             }
+<span class="lineNum">     197 </span>            :         }
+<span class="lineNum">     198 </span>            :         else
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             count1 = 0;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         if( nprime &gt; pbits ) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             if( ++count2 &gt; 20 ) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                 count2 = 0;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                 qbits--;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                 progress('&lt;');</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 mpi_free (q);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 q = gen_prime( qbits, 0, 0 );</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 goto next_try;</span>
+<span class="lineNum">     208 </span>            :             }
+<span class="lineNum">     209 </span>            :         }
+<span class="lineNum">     210 </span>            :         else
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             count2 = 0;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     } while( !(nprime == pbits &amp;&amp; check_prime( prime, val_2 )) );</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     if( DBG_CIPHER ) {</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         progress('\n');</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         log_mpidump( &quot;prime    : &quot;, prime );</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         log_mpidump( &quot;factor  q: &quot;, q );</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if( mode == 1 )</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             log_mpidump( &quot;factor q0: &quot;, q_factor );</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         for(i=0; i &lt; n; i++ )</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             log_mpidump( &quot;factor pi: &quot;, factors[i] );</span>
+<span class="lineNum">     222 </span>            :         log_debug(&quot;bit sizes: prime=%u, q=%u&quot;, mpi_get_nbits(prime), mpi_get_nbits(q) );
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         if( mode == 1 )</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;, q0=%u&quot;, mpi_get_nbits(q_factor) );</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         for(i=0; i &lt; n; i++ )</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;, p%d=%u&quot;, i, mpi_get_nbits(factors[i]) );</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         progress('\n');</span>
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     if( ret_factors ) { /* caller wants the factors */</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         *ret_factors = m_alloc_clear( (n+2) * sizeof **ret_factors);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         i = 0;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         if( mode == 1 ) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             (*ret_factors)[i++] = mpi_copy( q_factor );</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             for(; i &lt;= n; i++ )</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 (*ret_factors)[i] = mpi_copy( factors[i] );</span>
+<span class="lineNum">     237 </span>            :         }
+<span class="lineNum">     238 </span>            :         else {
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :             for(; i &lt; n; i++ )</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 (*ret_factors)[i] = mpi_copy( factors[i] );</span>
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span>            :     }
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     if( g ) { /* create a generator (start with 3)*/</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         MPI tmp   = mpi_alloc( mpi_get_nlimbs(prime) );</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         MPI b     = mpi_alloc( mpi_get_nlimbs(prime) );</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         MPI pmin1 = mpi_alloc( mpi_get_nlimbs(prime) );</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         if( mode == 1 )</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :             BUG(); /* not yet implemented */</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         factors[n] = q;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         factors[n+1] = mpi_alloc_set_ui(2);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         mpi_sub_ui( pmin1, prime, 1 );</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         mpi_set_ui(g,2);</span>
+<span class="lineNum">     255 </span>            :         do {
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             mpi_add_ui(g, g, 1);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             if( DBG_CIPHER ) {</span>
+<span class="lineNum">     258 </span>            :                 log_debug(&quot;checking g: &quot;);
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                 mpi_print( stderr, g, 1 );</span>
+<span class="lineNum">     260 </span>            :             }
+<span class="lineNum">     261 </span>            :             else
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 progress('^');</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             for(i=0; i &lt; n+2; i++ ) {</span>
+<span class="lineNum">     264 </span>            :                 /*fputc('~', stderr);*/
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                 mpi_fdiv_q(tmp, pmin1, factors[i] );</span>
+<span class="lineNum">     266 </span>            :                 /* (no mpi_pow(), but it is okay to use this with mod prime) */
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 mpi_powm(b, g, tmp, prime );</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 if( !mpi_cmp_ui(b, 1) )</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     270 </span>            :             }
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             if( DBG_CIPHER )</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 progress('\n');</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         } while( i &lt; n+2 );</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         mpi_free(factors[n+1]);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         mpi_free(tmp);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         mpi_free(b);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         mpi_free(pmin1);</span>
+<span class="lineNum">     278 </span>            :     }
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if( !DBG_CIPHER )</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         progress('\n');</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     m_free( factors );  /* (factors are shallow copies) */</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     for(i=0; i &lt; m; i++ )</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         mpi_free( pool[i] );</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     m_free( pool );</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     m_free(perms);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     mpi_free(val_2);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     mpi_free(q);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     return prime;</span>
+<span class="lineNum">     290 </span>            : }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : 
+<a name="293"><span class="lineNum">     293 </span>            : </a>
+<span class="lineNum">     294 </span>            : static MPI
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 : gen_prime( unsigned  nbits, int secret, int randomlevel )</span>
+<span class="lineNum">     296 </span>            : {
+<span class="lineNum">     297 </span>            :     unsigned  nlimbs;
+<span class="lineNum">     298 </span>            :     MPI prime, ptest, pminus1, val_2, val_3, result;
+<span class="lineNum">     299 </span>            :     int i;
+<span class="lineNum">     300 </span>            :     unsigned x, step;
+<span class="lineNum">     301 </span>            :     unsigned count1, count2;
+<span class="lineNum">     302 </span>            :     int *mods;
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :     if( 0 &amp;&amp; DBG_CIPHER )
+<span class="lineNum">     305 </span>            :         log_debug(&quot;generate a prime of %u bits &quot;, nbits );
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     if( !no_of_small_prime_numbers ) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         for(i=0; small_prime_numbers[i]; i++ )</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             no_of_small_prime_numbers++;</span>
+<span class="lineNum">     310 </span>            :     }
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     mods = m_alloc( no_of_small_prime_numbers * sizeof *mods );</span>
+<span class="lineNum">     312 </span>            :     /* make nbits fit into MPI implementation */
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     nlimbs = (nbits + BITS_PER_MPI_LIMB - 1) /  BITS_PER_MPI_LIMB;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     val_2  = mpi_alloc_set_ui( 2 );</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     val_3 = mpi_alloc_set_ui( 3);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     prime  = secret? mpi_alloc_secure( nlimbs ): mpi_alloc( nlimbs );</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     result = mpi_alloc_like( prime );</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     pminus1= mpi_alloc_like( prime );</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     ptest  = mpi_alloc_like( prime );</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     count1 = count2 = 0;</span>
+<span class="lineNum">     321 </span>            :     for(;;) {  /* try forvever */
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         int dotcount=0;</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :         /* generate a random number */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         {   char *p = get_random_bits( nbits, randomlevel, secret );</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             mpi_set_buffer( prime, p, (nbits+7)/8, 0 );</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             m_free(p);</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            :         /* set high order bit to 1, set low order bit to 1 */
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         mpi_set_highbit( prime, nbits-1 );</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         mpi_set_bit( prime, 0 );</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :         /* calculate all remainders */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         for(i=0; (x = small_prime_numbers[i]); i++ )</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             mods[i] = mpi_fdiv_r_ui(NULL, prime, x);</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            :         /* now try some primes starting with prime */
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         for(step=0; step &lt; 20000; step += 2 ) {</span>
+<span class="lineNum">     340 </span>            :             /* check against all the small primes we have in mods */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             count1++;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             for(i=0; (x = small_prime_numbers[i]); i++ ) {</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 while( mods[i] + step &gt;= x )</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                     mods[i] -= x;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 if( !(mods[i] + step) )</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     347 </span>            :             }
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             if( x )</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 continue;   /* found a multiple of an already known prime */</span>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             mpi_add_ui( ptest, prime, step );</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :             /* do a faster Fermat test */
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             count2++;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             mpi_sub_ui( pminus1, ptest, 1);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             mpi_powm( result, val_2, pminus1, ptest );</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             if( !mpi_cmp_ui( result, 1 ) ) { /* not composite */</span>
+<span class="lineNum">     358 </span>            :                 /* perform stronger tests */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                 if( is_prime(ptest, 5, &amp;count2 ) ) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                     if( !mpi_test_bit( ptest, nbits-1 ) ) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                         progress('\n');</span>
+<span class="lineNum">     362 </span>            :                         log_debug(&quot;overflow in prime generation\n&quot;);
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                         break; /* step loop, continue with a new prime */</span>
+<span class="lineNum">     364 </span>            :                     }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                     mpi_free(val_2);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                     mpi_free(val_3);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                     mpi_free(result);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                     mpi_free(pminus1);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                     mpi_free(prime);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                     m_free(mods);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :                     return ptest;</span>
+<span class="lineNum">     373 </span>            :                 }
+<span class="lineNum">     374 </span>            :             }
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             if( ++dotcount == 10 ) {</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 progress('.');</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 dotcount = 0;</span>
+<span class="lineNum">     378 </span>            :             }
+<span class="lineNum">     379 </span>            :         }
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         progress(':'); /* restart with a new random value */</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     382 </span>            : }
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : /****************
+<span class="lineNum">     385 </span>            :  * Returns: true if this may be a prime
+<a name="386"><span class="lineNum">     386 </span>            :  */</a>
+<span class="lineNum">     387 </span>            : static int
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 : check_prime( MPI prime, MPI val_2 )</span>
+<span class="lineNum">     389 </span>            : {
+<span class="lineNum">     390 </span>            :     int i;
+<span class="lineNum">     391 </span>            :     unsigned x;
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     int count=0;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :     /* check against small primes */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     for(i=0; (x = small_prime_numbers[i]); i++ ) {</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         if( mpi_divisible_ui( prime, x ) )</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     398 </span>            :     }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :     /* a quick fermat test */
+<span class="lineNum">     401 </span>            :     {
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         MPI result = mpi_alloc_like( prime );</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         MPI pminus1 = mpi_alloc_like( prime );</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         mpi_sub_ui( pminus1, prime, 1);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         mpi_powm( result, val_2, pminus1, prime );</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         mpi_free( pminus1 );</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         if( mpi_cmp_ui( result, 1 ) ) { /* if composite */</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :             mpi_free( result );</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             progress('.');</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     411 </span>            :         }
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         mpi_free( result );</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :     /* perform stronger tests */
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if( is_prime(prime, 5, &amp;count ) )</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         return 1; /* is probably a prime */</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     progress('.');</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     420 </span>            : }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            : /****************
+<span class="lineNum">     424 </span>            :  * Return true if n is probably a prime
+<a name="425"><span class="lineNum">     425 </span>            :  */</a>
+<span class="lineNum">     426 </span>            : static int
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 : is_prime( MPI n, int steps, int *count )</span>
+<span class="lineNum">     428 </span>            : {
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     MPI x = mpi_alloc( mpi_get_nlimbs( n ) );</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     MPI y = mpi_alloc( mpi_get_nlimbs( n ) );</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     MPI z = mpi_alloc( mpi_get_nlimbs( n ) );</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     MPI nminus1 = mpi_alloc( mpi_get_nlimbs( n ) );</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     MPI a2 = mpi_alloc_set_ui( 2 );</span>
+<span class="lineNum">     434 </span>            :     MPI q;
+<span class="lineNum">     435 </span>            :     unsigned i, j, k;
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     int rc = 0;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     unsigned nbits = mpi_get_nbits( n );</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     mpi_sub_ui( nminus1, n, 1 );</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            :     /* find q and k, so that n = 1 + 2^k * q */
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     q = mpi_copy( nminus1 );</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     k = mpi_trailing_zeros( q );</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     mpi_tdiv_q_2exp(q, q, k);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     for(i=0 ; i &lt; steps; i++ ) {</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         ++*count;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :         if( !i ) {</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             mpi_set_ui( x, 2 );</span>
+<span class="lineNum">     450 </span>            :         }
+<span class="lineNum">     451 </span>            :         else {
+<span class="lineNum">     452 </span>            :             /*mpi_set_bytes( x, nbits-1, get_random_byte, 0 );*/
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :             {   char *p = get_random_bits( nbits, 0, 0 );</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 mpi_set_buffer( x, p, (nbits+7)/8, 0 );</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                 m_free(p);</span>
+<span class="lineNum">     456 </span>            :             }
+<span class="lineNum">     457 </span>            :             /* make sure that the number is smaller than the prime
+<span class="lineNum">     458 </span>            :              * and keep the randomness of the high bit */
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :             if( mpi_test_bit( x, nbits-2 ) ) {</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                 mpi_set_highbit( x, nbits-2 ); /* clear all higher bits */</span>
+<span class="lineNum">     461 </span>            :             }
+<span class="lineNum">     462 </span>            :             else {
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                 mpi_set_highbit( x, nbits-2 );</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :                 mpi_clear_bit( x, nbits-2 );</span>
+<span class="lineNum">     465 </span>            :             }
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :             assert( mpi_cmp( x, nminus1 ) &lt; 0 &amp;&amp; mpi_cmp_ui( x, 1 ) &gt; 0 );</span>
+<span class="lineNum">     467 </span>            :         }
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         mpi_powm( y, x, q, n);</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :         if( mpi_cmp_ui(y, 1) &amp;&amp; mpi_cmp( y, nminus1 ) ) {</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             for( j=1; j &lt; k &amp;&amp; mpi_cmp( y, nminus1 ); j++ ) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                 mpi_powm(y, y, a2, n);</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 if( !mpi_cmp_ui( y, 1 ) )</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                     goto leave; /* not a prime */</span>
+<span class="lineNum">     474 </span>            :             }
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :             if( mpi_cmp( y, nminus1 ) )</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 goto leave; /* not a prime */</span>
+<span class="lineNum">     477 </span>            :         }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         progress('+');</span>
+<span class="lineNum">     479 </span>            :     }
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     rc = 1; /* may be a prime */</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :   leave:
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     mpi_free( x );</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     mpi_free( y );</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     mpi_free( z );</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     mpi_free( nminus1 );</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     mpi_free( q );</span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     490 </span>            : }
+<span class="lineNum">     491 </span>            : 
+<a name="492"><span class="lineNum">     492 </span>            : </a>
+<span class="lineNum">     493 </span>            : static void
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 : m_out_of_n( char *array, int m, int n )</span>
+<span class="lineNum">     495 </span>            : {
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     int i=0, i1=0, j=0, jp=0,  j1=0, k1=0, k2=0;</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     if( !m || m &gt;= n )</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     if( m == 1 ) { /* special case */</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         for(i=0; i &lt; n; i++ )</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :             if( array[i] ) {</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                 array[i++] = 0;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 if( i &gt;= n )</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                     i = 0;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                 array[i] = 1;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     509 </span>            :             }
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         BUG();</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     for(j=1; j &lt; n; j++ ) {</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         if( array[n-1] == array[n-j-1] )</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         j1 = j;</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     if( m &amp; 1 ) { /* m is odd */</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         if( array[n-1] ) {</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :             if( j1 &amp; 1 ) {</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 k1 = n - j1;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                 k2 = k1+2;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                 if( k2 &gt; n )</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                     k2 = n;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                 goto leave;</span>
+<span class="lineNum">     528 </span>            :             }
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             goto scan;</span>
+<span class="lineNum">     530 </span>            :         }
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :         k2 = n - j1 - 1;</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         if( k2 == 0 ) {</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             k1 = i;</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :             k2 = n - j1;</span>
+<span class="lineNum">     535 </span>            :         }
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         else if( array[k2] &amp;&amp; array[k2-1] )</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :             k1 = n;</span>
+<span class="lineNum">     538 </span>            :         else
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :             k1 = k2 + 1;</span>
+<span class="lineNum">     540 </span>            :     }
+<span class="lineNum">     541 </span>            :     else { /* m is even */
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         if( !array[n-1] ) {</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :             k1 = n - j1;</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :             k2 = k1 + 1;</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :             goto leave;</span>
+<span class="lineNum">     546 </span>            :         }
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         if( !(j1 &amp; 1) ) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :             k1 = n - j1;</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :             k2 = k1+2;</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :             if( k2 &gt; n )</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :                 k2 = n;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :             goto leave;</span>
+<span class="lineNum">     554 </span>            :         }
+<span class="lineNum">     555 </span>            :       scan:
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         jp = n - j1 - 1;</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         for(i=1; i &lt;= jp; i++ ) {</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :             i1 = jp + 2 - i;</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             if( array[i1-1]  ) {</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :                 if( array[i1-2] ) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                     k1 = i1 - 1;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                     k2 = n - j1;</span>
+<span class="lineNum">     563 </span>            :                 }
+<span class="lineNum">     564 </span>            :                 else {
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :                     k1 = i1 - 1;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :                     k2 = n + 1 - j1;</span>
+<span class="lineNum">     567 </span>            :                 }
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 goto leave;</span>
+<span class="lineNum">     569 </span>            :             }
+<span class="lineNum">     570 </span>            :         }
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :         k1 = 1;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :         k2 = n + 1 - m;</span>
+<span class="lineNum">     573 </span>            :     }
+<span class="lineNum">     574 </span>            :   leave:
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     array[k1-1] = !array[k1-1];</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     array[k2-1] = !array[k2-1];</span>
+<span class="lineNum">     577 </span>            : }
+<span class="lineNum">     578 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

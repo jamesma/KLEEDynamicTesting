@@ -1,0 +1,318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/rndlinux.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - rndlinux.c<span style="font-size: 80%;"> (source / <a href="rndlinux.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">57</td>
+            <td class="headerCovTableEntryLo">21.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* rndlinux.c  -  raw random number for OSes with /dev/random</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      30 </span>            : #ifdef HAVE_GETTIMEOFDAY
+<span class="lineNum">      31 </span>            :   #include &lt;sys/times.h&gt;
+<span class="lineNum">      32 </span>            : #endif
+<span class="lineNum">      33 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      36 </span>            : #if 0
+<span class="lineNum">      37 </span>            :   #ifdef HAVE_LINUX_RANDOM_H
+<span class="lineNum">      38 </span>            :     #include &lt;sys/ioctl.h&gt;
+<span class="lineNum">      39 </span>            :     #include &lt;asm/types.h&gt;
+<span class="lineNum">      40 </span>            :     #include &lt;linux/random.h&gt;
+<span class="lineNum">      41 </span>            :   #endif
+<span class="lineNum">      42 </span>            : #endif
+<span class="lineNum">      43 </span>            : #include &quot;types.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;ttyio.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;dynload.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #ifdef IS_MODULE
+<span class="lineNum">      49 </span>            :   #define _(a) (a)
+<span class="lineNum">      50 </span>            : #else
+<span class="lineNum">      51 </span>            :   #include &quot;i18n.h&quot;
+<span class="lineNum">      52 </span>            : #endif
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : static int open_device( const char *name, int minor );
+<span class="lineNum">      55 </span>            : static int gather_random( void (*add)(const void*, size_t, int), int requester,
+<span class="lineNum">      56 </span>            :                                           size_t length, int level );
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #if 0
+<span class="lineNum">      59 </span>            : #ifdef HAVE_DEV_RANDOM_IOCTL
+<span class="lineNum">      60 </span>            : static ulong
+<span class="lineNum">      61 </span>            : get_entropy_count( int fd )
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span>            :     ulong count;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            :     if( ioctl( fd, RNDGETENTCNT, &amp;count ) == -1 )
+<span class="lineNum">      66 </span>            :         g10_log_fatal(&quot;ioctl(RNDGETENTCNT) failed: %s\n&quot;, strerror(errno) );
+<span class="lineNum">      67 </span>            :     return count;
+<span class="lineNum">      68 </span>            : }
+<span class="lineNum">      69 </span>            : #endif
+<span class="lineNum">      70 </span>            : #endif
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : /****************
+<span class="lineNum">      73 </span>            :  * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists), ...)
+<a name="74"><span class="lineNum">      74 </span>            :  */</a>
+<span class="lineNum">      75 </span>            : static int
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : open_device( const char *name, int minor )</span>
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :     int fd;
+<span class="lineNum">      79 </span>            :     struct stat sb;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     fd = open( name, O_RDONLY );</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     if( fd == -1 )</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         g10_log_fatal(&quot;can't open %s: %s\n&quot;, name, strerror(errno) );</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     if( fstat( fd, &amp;sb ) )</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         g10_log_fatal(&quot;stat() off %s failed: %s\n&quot;, name, strerror(errno) );</span>
+<span class="lineNum">      86 </span>            :     /* Don't check device type for better portability */
+<span class="lineNum">      87 </span>            :     /*  if( (!S_ISCHR(sb.st_mode)) &amp;&amp; (!S_ISFIFO(sb.st_mode)) )
+<span class="lineNum">      88 </span>            :           g10_log_fatal(&quot;invalid random device!\n&quot; ); */
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     return fd;</span>
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : /****************
+<span class="lineNum">      94 </span>            :  * Note:  Using a level of 0 should never block and better add nothing
+<span class="lineNum">      95 </span>            :  * to the pool.  This is easy to accomplish with /dev/urandom.
+<a name="96"><span class="lineNum">      96 </span>            :  */</a>
+<span class="lineNum">      97 </span>            : static int
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 : gather_random( void (*add)(const void*, size_t, int), int requester,</span>
+<span class="lineNum">      99 </span>            :                                           size_t length, int level )
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span>            :     static int fd_urandom = -1;
+<span class="lineNum">     102 </span>            :     static int fd_random = -1;
+<span class="lineNum">     103 </span>            :     int fd;
+<span class="lineNum">     104 </span>            :     int n;
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     int warn=0;</span>
+<span class="lineNum">     106 </span>            :     byte buffer[768];
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if( level &gt;= 2 ) {</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         if( fd_random == -1 )</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :             fd_random = open_device( NAME_OF_DEV_RANDOM, 8 );</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         fd = fd_random;</span>
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            :     else {
+<span class="lineNum">     114 </span>            :         /* this will also be used for elve 0 but by using /dev/urandom
+<span class="lineNum">     115 </span>            :          * we can be sure that oit will never block. */
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         if( fd_urandom == -1 )</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :             fd_urandom = open_device( NAME_OF_DEV_URANDOM, 9 );</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         fd = fd_urandom;</span>
+<span class="lineNum">     119 </span>            :     }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :   #if 0
+<span class="lineNum">     122 </span>            :   #ifdef HAVE_DEV_RANDOM_IOCTL
+<span class="lineNum">     123 </span>            :     g10_log_info(&quot;entropy count of %d is %lu\n&quot;, fd, get_entropy_count(fd) );
+<span class="lineNum">     124 </span>            :   #endif
+<span class="lineNum">     125 </span>            :   #endif
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     while( length ) {</span>
+<span class="lineNum">     127 </span>            :         fd_set rfds;
+<span class="lineNum">     128 </span>            :         struct timeval tv;
+<span class="lineNum">     129 </span>            :         int rc;
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         FD_ZERO(&amp;rfds);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         FD_SET(fd, &amp;rfds);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         tv.tv_sec = 3;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         tv.tv_usec = 0;</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         if( !(rc=select(fd+1, &amp;rfds, NULL, NULL, &amp;tv)) ) {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             if( !warn )</span>
+<span class="lineNum">     137 </span>            :               #ifdef IS_MODULE
+<span class="lineNum">     138 </span>            :                 fprintf(stderr,
+<span class="lineNum">     139 </span>            :               #else
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                 tty_printf(</span>
+<span class="lineNum">     141 </span>            :               #endif
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : _(&quot;\n&quot;</span>
+<span class="lineNum">     143 </span>            : &quot;Not enough random bytes available.  Please do some other work to give\n&quot;
+<span class="lineNum">     144 </span>            : &quot;the OS a chance to collect more entropy! (Need %d more bytes)\n&quot;), length );
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             warn = 1;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     147 </span>            :         }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         else if( rc == -1 ) {</span>
+<span class="lineNum">     149 </span>            :           #ifdef IS_MODULE
+<span class="lineNum">     150 </span>            :             fprintf(stderr,
+<span class="lineNum">     151 </span>            :           #else
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :             tty_printf(</span>
+<span class="lineNum">     153 </span>            :           #endif
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                        &quot;select() error: %s\n&quot;, strerror(errno));</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     156 </span>            :         }
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :         do {
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             int nbytes = length &lt; sizeof(buffer)? length : sizeof(buffer);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             n = read(fd, buffer, nbytes );</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             if( n &gt;= 0 &amp;&amp; n &gt; nbytes ) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 g10_log_error(&quot;bogus read from random device (n=%d)\n&quot;, n );</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 n = nbytes;</span>
+<span class="lineNum">     164 </span>            :             }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         } while( n == -1 &amp;&amp; errno == EINTR );</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         if( n == -1 )</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             g10_log_fatal(&quot;read error on random device: %s\n&quot;, strerror(errno));</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         (*add)( buffer, n, requester );</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         length -= n;</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     memset(buffer, 0, sizeof(buffer) );</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     return 0; /* success */</span>
+<span class="lineNum">     174 </span>            : }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     179 </span>            : static
+<span class="lineNum">     180 </span>            : #endif
+<span class="lineNum">     181 </span>            : const char * const gnupgext_version = &quot;RNDLINUX ($Revision: 1.9.2.3 $)&quot;;
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            : static struct {
+<span class="lineNum">     184 </span>            :     int class;
+<span class="lineNum">     185 </span>            :     int version;
+<span class="lineNum">     186 </span>            :     void *func;
+<span class="lineNum">     187 </span>            : } func_table[] = {
+<span class="lineNum">     188 </span>            :     { 40, 1, gather_random },
+<span class="lineNum">     189 </span>            : };
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : /****************
+<span class="lineNum">     194 </span>            :  * Enumerate the names of the functions together with informations about
+<span class="lineNum">     195 </span>            :  * this function. Set sequence to an integer with a initial value of 0 and
+<span class="lineNum">     196 </span>            :  * do not change it.
+<span class="lineNum">     197 </span>            :  * If what is 0 all kind of functions are returned.
+<span class="lineNum">     198 </span>            :  * Return values: class := class of function:
+<span class="lineNum">     199 </span>            :  *                         10 = message digest algorithm info function
+<span class="lineNum">     200 </span>            :  *                         11 = integer with available md algorithms
+<span class="lineNum">     201 </span>            :  *                         20 = cipher algorithm info function
+<span class="lineNum">     202 </span>            :  *                         21 = integer with available cipher algorithms
+<span class="lineNum">     203 </span>            :  *                         30 = public key algorithm info function
+<span class="lineNum">     204 </span>            :  *                         31 = integer with available pubkey algorithms
+<span class="lineNum">     205 </span>            :  *                         40 = get gather_random function
+<span class="lineNum">     206 </span>            :  *                         41 = get fast_random_poll function
+<span class="lineNum">     207 </span>            :  *                version = interface version of the function/pointer
+<span class="lineNum">     208 </span>            :  *                          (currently this is 1 for all functions)
+<span class="lineNum">     209 </span>            :  */
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     212 </span>            : static
+<a name="213"><span class="lineNum">     213 </span>            : #endif</a>
+<span class="lineNum">     214 </span>            : void *
+<span class="lineNum">     215 </span><span class="lineCov">         64 : gnupgext_enum_func( int what, int *sequence, int *class, int *vers )</span>
+<span class="lineNum">     216 </span>            : {
+<span class="lineNum">     217 </span>            :     void *ret;
+<span class="lineNum">     218 </span><span class="lineCov">         64 :     int i = *sequence;</span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :     do {
+<span class="lineNum">     221 </span><span class="lineCov">        128 :         if ( i &gt;= DIM(func_table) || i &lt; 0 ) {</span>
+<span class="lineNum">     222 </span><span class="lineCov">         64 :             return NULL;</span>
+<span class="lineNum">     223 </span>            :         }
+<span class="lineNum">     224 </span><span class="lineCov">         64 :         *class = func_table[i].class;</span>
+<span class="lineNum">     225 </span><span class="lineCov">         64 :         *vers  = func_table[i].version;</span>
+<span class="lineNum">     226 </span><span class="lineCov">         64 :         ret = func_table[i].func;</span>
+<span class="lineNum">     227 </span><span class="lineCov">         64 :         i++;</span>
+<span class="lineNum">     228 </span><span class="lineCov">         64 :     } while ( what &amp;&amp; what != *class );</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     *sequence = i;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     232 </span>            : }
+<span class="lineNum">     233 </span>            : 
+<a name="234"><span class="lineNum">     234 </span>            : #ifndef IS_MODULE</a>
+<span class="lineNum">     235 </span>            : void
+<span class="lineNum">     236 </span><span class="lineCov">         64 : rndlinux_constructor(void)</span>
+<span class="lineNum">     237 </span>            : {
+<span class="lineNum">     238 </span><span class="lineCov">         64 :     register_internal_cipher_extension( gnupgext_version,</span>
+<span class="lineNum">     239 </span>            :                                         gnupgext_enum_func );
+<span class="lineNum">     240 </span><span class="lineCov">         64 : }</span>
+<span class="lineNum">     241 </span>            : #endif
+<span class="lineNum">     242 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,724 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/rmd160.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - rmd160.c<span style="font-size: 80%;"> (source / <a href="rmd160.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">303</td>
+            <td class="headerCovTableEntryLo">5.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">18.2 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* rmd160.c  -  RIPE-MD160</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      26 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;memory.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;rmd.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;cipher.h&quot; /* only used for the rmd160_hash_buffer() prototype */
+<span class="lineNum">      30 </span>            : #include &quot;dynload.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;bithelp.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /*********************************
+<span class="lineNum">      35 </span>            :  * RIPEMD-160 is not patented, see (as of 25.10.97)
+<span class="lineNum">      36 </span>            :  *   http://www.esat.kuleuven.ac.be/~bosselae/ripemd160.html
+<span class="lineNum">      37 </span>            :  * Note that the code uses Little Endian byteorder, which is good for
+<span class="lineNum">      38 </span>            :  * 386 etc, but we must add some conversion when used on a big endian box.
+<span class="lineNum">      39 </span>            :  *
+<span class="lineNum">      40 </span>            :  *
+<span class="lineNum">      41 </span>            :  * Pseudo-code for RIPEMD-160
+<span class="lineNum">      42 </span>            :  *
+<span class="lineNum">      43 </span>            :  * RIPEMD-160 is an iterative hash function that operates on 32-bit words.
+<span class="lineNum">      44 </span>            :  * The round function takes as input a 5-word chaining variable and a 16-word
+<span class="lineNum">      45 </span>            :  * message block and maps this to a new chaining variable. All operations are
+<span class="lineNum">      46 </span>            :  * defined on 32-bit words. Padding is identical to that of MD4.
+<span class="lineNum">      47 </span>            :  *
+<span class="lineNum">      48 </span>            :  *
+<span class="lineNum">      49 </span>            :  * RIPEMD-160: definitions
+<span class="lineNum">      50 </span>            :  *
+<span class="lineNum">      51 </span>            :  *
+<span class="lineNum">      52 </span>            :  *   nonlinear functions at bit level: exor, mux, -, mux, -
+<span class="lineNum">      53 </span>            :  *
+<span class="lineNum">      54 </span>            :  *   f(j, x, y, z) = x XOR y XOR z                (0 &lt;= j &lt;= 15)
+<span class="lineNum">      55 </span>            :  *   f(j, x, y, z) = (x AND y) OR (NOT(x) AND z)  (16 &lt;= j &lt;= 31)
+<span class="lineNum">      56 </span>            :  *   f(j, x, y, z) = (x OR NOT(y)) XOR z          (32 &lt;= j &lt;= 47)
+<span class="lineNum">      57 </span>            :  *   f(j, x, y, z) = (x AND z) OR (y AND NOT(z))  (48 &lt;= j &lt;= 63)
+<span class="lineNum">      58 </span>            :  *   f(j, x, y, z) = x XOR (y OR NOT(z))          (64 &lt;= j &lt;= 79)
+<span class="lineNum">      59 </span>            :  *
+<span class="lineNum">      60 </span>            :  *
+<span class="lineNum">      61 </span>            :  *   added constants (hexadecimal)
+<span class="lineNum">      62 </span>            :  *
+<span class="lineNum">      63 </span>            :  *   K(j) = 0x00000000      (0 &lt;= j &lt;= 15)
+<span class="lineNum">      64 </span>            :  *   K(j) = 0x5A827999     (16 &lt;= j &lt;= 31)        int(2**30 x sqrt(2))
+<span class="lineNum">      65 </span>            :  *   K(j) = 0x6ED9EBA1     (32 &lt;= j &lt;= 47)        int(2**30 x sqrt(3))
+<span class="lineNum">      66 </span>            :  *   K(j) = 0x8F1BBCDC     (48 &lt;= j &lt;= 63)        int(2**30 x sqrt(5))
+<span class="lineNum">      67 </span>            :  *   K(j) = 0xA953FD4E     (64 &lt;= j &lt;= 79)        int(2**30 x sqrt(7))
+<span class="lineNum">      68 </span>            :  *   K'(j) = 0x50A28BE6     (0 &lt;= j &lt;= 15)      int(2**30 x cbrt(2))
+<span class="lineNum">      69 </span>            :  *   K'(j) = 0x5C4DD124    (16 &lt;= j &lt;= 31)      int(2**30 x cbrt(3))
+<span class="lineNum">      70 </span>            :  *   K'(j) = 0x6D703EF3    (32 &lt;= j &lt;= 47)      int(2**30 x cbrt(5))
+<span class="lineNum">      71 </span>            :  *   K'(j) = 0x7A6D76E9    (48 &lt;= j &lt;= 63)      int(2**30 x cbrt(7))
+<span class="lineNum">      72 </span>            :  *   K'(j) = 0x00000000    (64 &lt;= j &lt;= 79)
+<span class="lineNum">      73 </span>            :  *
+<span class="lineNum">      74 </span>            :  *
+<span class="lineNum">      75 </span>            :  *   selection of message word
+<span class="lineNum">      76 </span>            :  *
+<span class="lineNum">      77 </span>            :  *   r(j)      = j                    (0 &lt;= j &lt;= 15)
+<span class="lineNum">      78 </span>            :  *   r(16..31) = 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8
+<span class="lineNum">      79 </span>            :  *   r(32..47) = 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12
+<span class="lineNum">      80 </span>            :  *   r(48..63) = 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2
+<span class="lineNum">      81 </span>            :  *   r(64..79) = 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13
+<span class="lineNum">      82 </span>            :  *   r0(0..15) = 5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12
+<span class="lineNum">      83 </span>            :  *   r0(16..31)= 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2
+<span class="lineNum">      84 </span>            :  *   r0(32..47)= 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13
+<span class="lineNum">      85 </span>            :  *   r0(48..63)= 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14
+<span class="lineNum">      86 </span>            :  *   r0(64..79)= 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11
+<span class="lineNum">      87 </span>            :  *
+<span class="lineNum">      88 </span>            :  *
+<span class="lineNum">      89 </span>            :  *   amount for rotate left (rol)
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  *   s(0..15)  = 11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8
+<span class="lineNum">      92 </span>            :  *   s(16..31) = 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12
+<span class="lineNum">      93 </span>            :  *   s(32..47) = 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5
+<span class="lineNum">      94 </span>            :  *   s(48..63) = 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12
+<span class="lineNum">      95 </span>            :  *   s(64..79) = 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6
+<span class="lineNum">      96 </span>            :  *   s'(0..15) = 8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6
+<span class="lineNum">      97 </span>            :  *   s'(16..31)= 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11
+<span class="lineNum">      98 </span>            :  *   s'(32..47)= 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5
+<span class="lineNum">      99 </span>            :  *   s'(48..63)= 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8
+<span class="lineNum">     100 </span>            :  *   s'(64..79)= 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
+<span class="lineNum">     101 </span>            :  *
+<span class="lineNum">     102 </span>            :  *
+<span class="lineNum">     103 </span>            :  *   initial value (hexadecimal)
+<span class="lineNum">     104 </span>            :  *
+<span class="lineNum">     105 </span>            :  *   h0 = 0x67452301; h1 = 0xEFCDAB89; h2 = 0x98BADCFE; h3 = 0x10325476;
+<span class="lineNum">     106 </span>            :  *                                                      h4 = 0xC3D2E1F0;
+<span class="lineNum">     107 </span>            :  *
+<span class="lineNum">     108 </span>            :  *
+<span class="lineNum">     109 </span>            :  * RIPEMD-160: pseudo-code
+<span class="lineNum">     110 </span>            :  *
+<span class="lineNum">     111 </span>            :  *   It is assumed that the message after padding consists of t 16-word blocks
+<span class="lineNum">     112 </span>            :  *   that will be denoted with X[i][j], with 0 &lt;= i &lt;= t-1 and 0 &lt;= j &lt;= 15.
+<span class="lineNum">     113 </span>            :  *   The symbol [+] denotes addition modulo 2**32 and rol_s denotes cyclic left
+<span class="lineNum">     114 </span>            :  *   shift (rotate) over s positions.
+<span class="lineNum">     115 </span>            :  *
+<span class="lineNum">     116 </span>            :  *
+<span class="lineNum">     117 </span>            :  *   for i := 0 to t-1 {
+<span class="lineNum">     118 </span>            :  *       A := h0; B := h1; C := h2; D = h3; E = h4;
+<span class="lineNum">     119 </span>            :  *       A' := h0; B' := h1; C' := h2; D' = h3; E' = h4;
+<span class="lineNum">     120 </span>            :  *       for j := 0 to 79 {
+<span class="lineNum">     121 </span>            :  *           T := rol_s(j)(A [+] f(j, B, C, D) [+] X[i][r(j)] [+] K(j)) [+] E;
+<span class="lineNum">     122 </span>            :  *           A := E; E := D; D := rol_10(C); C := B; B := T;
+<span class="lineNum">     123 </span>            :  *           T := rol_s'(j)(A' [+] f(79-j, B', C', D') [+] X[i][r'(j)]
+<span class="lineNum">     124 </span>            :                                                        [+] K'(j)) [+] E';
+<span class="lineNum">     125 </span>            :  *           A' := E'; E' := D'; D' := rol_10(C'); C' := B'; B' := T;
+<span class="lineNum">     126 </span>            :  *       }
+<span class="lineNum">     127 </span>            :  *       T := h1 [+] C [+] D'; h1 := h2 [+] D [+] E'; h2 := h3 [+] E [+] A';
+<span class="lineNum">     128 </span>            :  *       h3 := h4 [+] A [+] B'; h4 := h0 [+] B [+] C'; h0 := T;
+<span class="lineNum">     129 </span>            :  *   }
+<span class="lineNum">     130 </span>            :  */
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /* Some examples:
+<span class="lineNum">     133 </span>            :  * &quot;&quot;                    9c1185a5c5e9fc54612808977ee8f548b2258d31
+<span class="lineNum">     134 </span>            :  * &quot;a&quot;                   0bdc9d2d256b3ee9daae347be6f4dc835a467ffe
+<span class="lineNum">     135 </span>            :  * &quot;abc&quot;                 8eb208f7e05d987a9b044a8e98c6b087f15a0bfc
+<span class="lineNum">     136 </span>            :  * &quot;message digest&quot;      5d0689ef49d2fae572b881b123a85ffa21595f36
+<span class="lineNum">     137 </span>            :  * &quot;a...z&quot;               f71c27109c692c1b56bbdceb5b9d2865b3708dbc
+<span class="lineNum">     138 </span>            :  * &quot;abcdbcde...nopq&quot;     12a053384a9c0c88e405a06c27dcf49ada62eb2b
+<span class="lineNum">     139 </span>            :  * &quot;A...Za...z0...9&quot;     b0e20b6e3116640286ed3a87a5713079b21f5189
+<span class="lineNum">     140 </span>            :  * 8 times &quot;1234567890&quot;  9b752e45573d4b39f4dbd3323cab82bf63326bfb
+<span class="lineNum">     141 </span>            :  * 1 million times &quot;a&quot;   52783243c1697bdbe16d37f97f68f08325dc1528
+<span class="lineNum">     142 </span>            :  */
+<a name="143"><span class="lineNum">     143 </span>            : </a>
+<span class="lineNum">     144 </span>            : static void
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : burn_stack (int bytes)</span>
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span>            :     char buf[150];
+<span class="lineNum">     148 </span>            :     
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     memset (buf, 0, sizeof buf);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     bytes -= sizeof buf;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     if (bytes &gt; 0)</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         burn_stack (bytes);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : 
+<a name="156"><span class="lineNum">     156 </span>            : </a>
+<span class="lineNum">     157 </span>            : void
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 : rmd160_init( RMD160_CONTEXT *hd )</span>
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     hd-&gt;h0 = 0x67452301;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     hd-&gt;h1 = 0xEFCDAB89;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     hd-&gt;h2 = 0x98BADCFE;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     hd-&gt;h3 = 0x10325476;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     hd-&gt;h4 = 0xC3D2E1F0;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     hd-&gt;nblocks = 0;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     hd-&gt;count = 0;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : /****************
+<span class="lineNum">     172 </span>            :  * Transform the message X which consists of 16 32-bit-words
+<a name="173"><span class="lineNum">     173 </span>            :  */</a>
+<span class="lineNum">     174 </span>            : static void
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 : transform( RMD160_CONTEXT *hd, byte *data )</span>
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span>            :     u32 a,b,c,d,e,aa,bb,cc,dd,ee,t;
+<span class="lineNum">     178 </span>            :   #ifdef BIG_ENDIAN_HOST
+<span class="lineNum">     179 </span>            :     u32 x[16];
+<span class="lineNum">     180 </span>            :     { int i;
+<span class="lineNum">     181 </span>            :       byte *p2, *p1;
+<span class="lineNum">     182 </span>            :       for(i=0, p1=data, p2=(byte*)x; i &lt; 16; i++, p2 += 4 ) {
+<span class="lineNum">     183 </span>            :         p2[3] = *p1++;
+<span class="lineNum">     184 </span>            :         p2[2] = *p1++;
+<span class="lineNum">     185 </span>            :         p2[1] = *p1++;
+<span class="lineNum">     186 </span>            :         p2[0] = *p1++;
+<span class="lineNum">     187 </span>            :       }
+<span class="lineNum">     188 </span>            :     }
+<span class="lineNum">     189 </span>            :   #else
+<span class="lineNum">     190 </span>            :    #if 0
+<span class="lineNum">     191 </span>            :     u32 *x =(u32*)data;
+<span class="lineNum">     192 </span>            :    #else
+<span class="lineNum">     193 </span>            :     /* this version is better because it is always aligned;
+<span class="lineNum">     194 </span>            :      * The performance penalty on a 586-100 is about 6% which
+<span class="lineNum">     195 </span>            :      * is acceptable - because the data is more local it might
+<span class="lineNum">     196 </span>            :      * also be possible that this is faster on some machines.
+<span class="lineNum">     197 </span>            :      * This function (when compiled with -02 on gcc 2.7.2)
+<span class="lineNum">     198 </span>            :      * executes on a 586-100 (39.73 bogomips) at about 1900kb/sec;
+<span class="lineNum">     199 </span>            :      * [measured with a 4MB data and &quot;gpgm --print-md rmd160&quot;] */
+<span class="lineNum">     200 </span>            :     u32 x[16];
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     memcpy( x, data, 64 );</span>
+<span class="lineNum">     202 </span>            :    #endif
+<span class="lineNum">     203 </span>            :   #endif
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : #define K0  0x00000000
+<span class="lineNum">     207 </span>            : #define K1  0x5A827999
+<span class="lineNum">     208 </span>            : #define K2  0x6ED9EBA1
+<span class="lineNum">     209 </span>            : #define K3  0x8F1BBCDC
+<span class="lineNum">     210 </span>            : #define K4  0xA953FD4E
+<span class="lineNum">     211 </span>            : #define KK0 0x50A28BE6
+<span class="lineNum">     212 </span>            : #define KK1 0x5C4DD124
+<span class="lineNum">     213 </span>            : #define KK2 0x6D703EF3
+<span class="lineNum">     214 </span>            : #define KK3 0x7A6D76E9
+<span class="lineNum">     215 </span>            : #define KK4 0x00000000
+<span class="lineNum">     216 </span>            : #define F0(x,y,z)   ( (x) ^ (y) ^ (z) )
+<span class="lineNum">     217 </span>            : #define F1(x,y,z)   ( ((x) &amp; (y)) | (~(x) &amp; (z)) )
+<span class="lineNum">     218 </span>            : #define F2(x,y,z)   ( ((x) | ~(y)) ^ (z) )
+<span class="lineNum">     219 </span>            : #define F3(x,y,z)   ( ((x) &amp; (z)) | ((y) &amp; ~(z)) )
+<span class="lineNum">     220 </span>            : #define F4(x,y,z)   ( (x) ^ ((y) | ~(z)) )
+<span class="lineNum">     221 </span>            : #define R(a,b,c,d,e,f,k,r,s) do { t = a + f(b,c,d) + k + x[r]; \
+<span class="lineNum">     222 </span>            :                                   a = rol(t,s) + e;            \
+<span class="lineNum">     223 </span>            :                                   c = rol(c,10);               \
+<span class="lineNum">     224 </span>            :                                 } while(0)
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :     /* left lane */
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     a = hd-&gt;h0;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     b = hd-&gt;h1;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     c = hd-&gt;h2;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     d = hd-&gt;h3;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     e = hd-&gt;h4;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, K0,  0, 11 );</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, K0,  1, 14 );</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, K0,  2, 15 );</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, K0,  3, 12 );</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, K0,  4,  5 );</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, K0,  5,  8 );</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, K0,  6,  7 );</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, K0,  7,  9 );</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, K0,  8, 11 );</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, K0,  9, 13 );</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, K0, 10, 14 );</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, K0, 11, 15 );</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, K0, 12,  6 );</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, K0, 13,  7 );</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, K0, 14,  9 );</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, K0, 15,  8 );</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, K1,  7,  7 );</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, K1,  4,  6 );</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, K1, 13,  8 );</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, K1,  1, 13 );</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, K1, 10, 11 );</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, K1,  6,  9 );</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, K1, 15,  7 );</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, K1,  3, 15 );</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, K1, 12,  7 );</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, K1,  0, 12 );</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, K1,  9, 15 );</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, K1,  5,  9 );</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, K1,  2, 11 );</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, K1, 14,  7 );</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, K1, 11, 13 );</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, K1,  8, 12 );</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, K2,  3, 11 );</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, K2, 10, 13 );</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, K2, 14,  6 );</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, K2,  4,  7 );</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, K2,  9, 14 );</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, K2, 15,  9 );</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, K2,  8, 13 );</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, K2,  1, 15 );</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, K2,  2, 14 );</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, K2,  7,  8 );</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, K2,  0, 13 );</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, K2,  6,  6 );</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, K2, 13,  5 );</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, K2, 11, 12 );</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, K2,  5,  7 );</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, K2, 12,  5 );</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, K3,  1, 11 );</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, K3,  9, 12 );</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, K3, 11, 14 );</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, K3, 10, 15 );</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, K3,  0, 14 );</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, K3,  8, 15 );</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, K3, 12,  9 );</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, K3,  4,  8 );</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, K3, 13,  9 );</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, K3,  3, 14 );</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, K3,  7,  5 );</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, K3, 15,  6 );</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, K3, 14,  8 );</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, K3,  5,  6 );</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, K3,  6,  5 );</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, K3,  2, 12 );</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, K4,  4,  9 );</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, K4,  0, 15 );</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, K4,  5,  5 );</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, K4,  9, 11 );</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, K4,  7,  6 );</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, K4, 12,  8 );</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, K4,  2, 13 );</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, K4, 10, 12 );</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, K4, 14,  5 );</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, K4,  1, 12 );</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, K4,  3, 13 );</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, K4,  8, 14 );</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, K4, 11, 11 );</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, K4,  6,  8 );</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, K4, 15,  5 );</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, K4, 13,  6 );</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     aa = a; bb = b; cc = c; dd = d; ee = e;</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            :     /* right lane */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     a = hd-&gt;h0;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     b = hd-&gt;h1;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     c = hd-&gt;h2;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     d = hd-&gt;h3;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     e = hd-&gt;h4;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, KK0,  5,  8);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, KK0, 14,  9);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, KK0,  7,  9);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, KK0,  0, 11);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, KK0,  9, 13);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, KK0,  2, 15);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, KK0, 11, 15);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, KK0,  4,  5);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, KK0, 13,  7);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, KK0,  6,  7);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, KK0, 15,  8);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F4, KK0,  8, 11);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F4, KK0,  1, 14);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F4, KK0, 10, 14);</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F4, KK0,  3, 12);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F4, KK0, 12,  6);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, KK1,  6,  9);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, KK1, 11, 13);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, KK1,  3, 15);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, KK1,  7,  7);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, KK1,  0, 12);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, KK1, 13,  8);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, KK1,  5,  9);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, KK1, 10, 11);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, KK1, 14,  7);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, KK1, 15,  7);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, KK1,  8, 12);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F3, KK1, 12,  7);</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F3, KK1,  4,  6);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F3, KK1,  9, 15);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F3, KK1,  1, 13);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F3, KK1,  2, 11);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, KK2, 15,  9);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, KK2,  5,  7);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, KK2,  1, 15);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, KK2,  3, 11);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, KK2,  7,  8);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, KK2, 14,  6);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, KK2,  6,  6);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, KK2,  9, 14);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, KK2, 11, 12);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, KK2,  8, 13);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, KK2, 12,  5);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F2, KK2,  2, 14);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F2, KK2, 10, 13);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F2, KK2,  0, 13);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F2, KK2,  4,  7);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F2, KK2, 13,  5);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, KK3,  8, 15);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, KK3,  6,  5);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, KK3,  4,  8);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, KK3,  1, 11);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, KK3,  3, 14);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, KK3, 11, 14);</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, KK3, 15,  6);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, KK3,  0, 14);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, KK3,  5,  6);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, KK3, 12,  9);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, KK3,  2, 12);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F1, KK3, 13,  9);</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F1, KK3,  9, 12);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F1, KK3,  7,  5);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F1, KK3, 10, 15);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F1, KK3, 14,  8);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, KK4, 12,  8);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, KK4, 15,  5);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, KK4, 10, 12);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, KK4,  4,  9);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, KK4,  1, 12);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, KK4,  5,  5);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, KK4,  8, 14);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, KK4,  7,  6);</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, KK4,  6,  8);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, KK4,  2, 13);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, KK4, 13,  6);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     R( a, b, c, d, e, F0, KK4, 14,  5);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     R( e, a, b, c, d, F0, KK4,  0, 15);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     R( d, e, a, b, c, F0, KK4,  3, 13);</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     R( c, d, e, a, b, F0, KK4,  9, 11);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     R( b, c, d, e, a, F0, KK4, 11, 11);</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     t      = hd-&gt;h1 + d + cc;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     hd-&gt;h1 = hd-&gt;h2 + e + dd;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     hd-&gt;h2 = hd-&gt;h3 + a + ee;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     hd-&gt;h3 = hd-&gt;h4 + b + aa;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     hd-&gt;h4 = hd-&gt;h0 + c + bb;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     hd-&gt;h0 = t;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            : /* Update the message digest with the contents
+<span class="lineNum">     413 </span>            :  * of INBUF with length INLEN.
+<a name="414"><span class="lineNum">     414 </span>            :  */</a>
+<span class="lineNum">     415 </span>            : static void
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 : rmd160_write( RMD160_CONTEXT *hd, byte *inbuf, size_t inlen)</span>
+<span class="lineNum">     417 </span>            : {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     if( hd-&gt;count == 64 ) { /* flush the buffer */</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         transform( hd, hd-&gt;buf );</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         burn_stack (108+5*sizeof(void*));</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         hd-&gt;count = 0;</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         hd-&gt;nblocks++;</span>
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if( !inbuf )</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     if( hd-&gt;count ) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         for( ; inlen &amp;&amp; hd-&gt;count &lt; 64; inlen-- )</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = *inbuf++;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         rmd160_write( hd, NULL, 0 );</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         if( !inlen )</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     432 </span>            :     }
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     while( inlen &gt;= 64 ) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         transform( hd, inbuf );</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         hd-&gt;count = 0;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :         hd-&gt;nblocks++;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         inlen -= 64;</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         inbuf += 64;</span>
+<span class="lineNum">     440 </span>            :     }
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     burn_stack (108+5*sizeof(void*));</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     for( ; inlen &amp;&amp; hd-&gt;count &lt; 64; inlen-- )</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = *inbuf++;</span>
+<span class="lineNum">     444 </span>            : }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            : /****************
+<span class="lineNum">     447 </span>            :  * Apply the rmd160 transform function on the buffer which must have
+<span class="lineNum">     448 </span>            :  * a length 64 bytes. Do not use this function together with the
+<span class="lineNum">     449 </span>            :  * other functions, use rmd160_init to initialize internal variables.
+<span class="lineNum">     450 </span>            :  * Returns: 16 bytes in buffer with the mixed contentes of buffer.
+<a name="451"><span class="lineNum">     451 </span>            :  */</a>
+<span class="lineNum">     452 </span>            : void
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 : rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )</span>
+<span class="lineNum">     454 </span>            : {
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     char *p = buffer;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     transform( hd, buffer );</span>
+<span class="lineNum">     457 </span>            :   #define X(a) do { *(u32*)p = hd-&gt;h##a ; p += 4; } while(0)
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     X(0);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     X(1);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     X(2);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     X(3);</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     X(4);</span>
+<span class="lineNum">     463 </span>            :   #undef X
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            : /* The routine terminates the computation
+<span class="lineNum">     468 </span>            :  */
+<a name="469"><span class="lineNum">     469 </span>            : </a>
+<span class="lineNum">     470 </span>            : static void
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 : rmd160_final( RMD160_CONTEXT *hd )</span>
+<span class="lineNum">     472 </span>            : {
+<span class="lineNum">     473 </span>            :     u32 t, msb, lsb;
+<span class="lineNum">     474 </span>            :     byte *p;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     rmd160_write(hd, NULL, 0); /* flush */;</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     t = hd-&gt;nblocks;</span>
+<span class="lineNum">     479 </span>            :     /* multiply by 64 to make a byte count */
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     lsb = t &lt;&lt; 6;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     msb = t &gt;&gt; 26;</span>
+<span class="lineNum">     482 </span>            :     /* add the count */
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     t = lsb;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     if( (lsb += hd-&gt;count) &lt; t )</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :         msb++;</span>
+<span class="lineNum">     486 </span>            :     /* multiply by 8 to make a bit count */
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     t = lsb;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     lsb &lt;&lt;= 3;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     msb &lt;&lt;= 3;</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     msb |= t &gt;&gt; 29;</span>
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     if( hd-&gt;count &lt; 56 ) { /* enough room */</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = 0x80; /* pad */</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         while( hd-&gt;count &lt; 56 )</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = 0;  /* pad */</span>
+<span class="lineNum">     496 </span>            :     }
+<span class="lineNum">     497 </span>            :     else { /* need one extra block */
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         hd-&gt;buf[hd-&gt;count++] = 0x80; /* pad character */</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         while( hd-&gt;count &lt; 64 )</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             hd-&gt;buf[hd-&gt;count++] = 0;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :         rmd160_write(hd, NULL, 0);  /* flush */;</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         memset(hd-&gt;buf, 0, 56 ); /* fill next block with zeroes */</span>
+<span class="lineNum">     503 </span>            :     }
+<span class="lineNum">     504 </span>            :     /* append the 64 bit count */
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     hd-&gt;buf[56] = lsb           ;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     hd-&gt;buf[57] = lsb &gt;&gt;  8;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     hd-&gt;buf[58] = lsb &gt;&gt; 16;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     hd-&gt;buf[59] = lsb &gt;&gt; 24;</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     hd-&gt;buf[60] = msb           ;</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     hd-&gt;buf[61] = msb &gt;&gt;  8;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     hd-&gt;buf[62] = msb &gt;&gt; 16;</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     hd-&gt;buf[63] = msb &gt;&gt; 24;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     transform( hd, hd-&gt;buf );</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     burn_stack (108+5*sizeof(void*));</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     p = hd-&gt;buf;</span>
+<span class="lineNum">     517 </span>            :   #ifdef BIG_ENDIAN_HOST
+<span class="lineNum">     518 </span>            :     #define X(a) do { *p++ = hd-&gt;h##a           ; *p++ = hd-&gt;h##a &gt;&gt; 8;     \
+<span class="lineNum">     519 </span>            :                       *p++ = hd-&gt;h##a &gt;&gt; 16; *p++ = hd-&gt;h##a &gt;&gt; 24; } while(0)
+<span class="lineNum">     520 </span>            :   #else /* little endian */
+<span class="lineNum">     521 </span>            :     #define X(a) do { *(u32*)p = hd-&gt;h##a ; p += 4; } while(0)
+<span class="lineNum">     522 </span>            :   #endif
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     X(0);</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     X(1);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     X(2);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     X(3);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     X(4);</span>
+<span class="lineNum">     528 </span>            :   #undef X
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 : }</span>
+<a name="530"><span class="lineNum">     530 </span>            : </a>
+<span class="lineNum">     531 </span>            : static byte *
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 : rmd160_read( RMD160_CONTEXT *hd )</span>
+<span class="lineNum">     533 </span>            : {
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     return hd-&gt;buf;</span>
+<span class="lineNum">     535 </span>            : }
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            : /****************
+<span class="lineNum">     540 </span>            :  * Shortcut functions which puts the hash value of the supplied buffer
+<span class="lineNum">     541 </span>            :  * into outbuf which must have a size of 20 bytes.
+<a name="542"><span class="lineNum">     542 </span>            :  */</a>
+<span class="lineNum">     543 </span>            : void
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 : rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )</span>
+<span class="lineNum">     545 </span>            : {
+<span class="lineNum">     546 </span>            :     RMD160_CONTEXT hd;
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     rmd160_init( &amp;hd );</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     rmd160_write( &amp;hd, (byte*)buffer, length );</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     rmd160_final( &amp;hd );</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     memcpy( outbuf, hd.buf, 20 );</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span>            : /****************
+<span class="lineNum">     556 </span>            :  * Return some information about the algorithm.  We need algo here to
+<span class="lineNum">     557 </span>            :  * distinguish different flavors of the algorithm.
+<span class="lineNum">     558 </span>            :  * Returns: A pointer to string describing the algorithm or NULL if
+<span class="lineNum">     559 </span>            :  *          the ALGO is invalid.
+<a name="560"><span class="lineNum">     560 </span>            :  */</a>
+<span class="lineNum">     561 </span>            : static const char *
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 : rmd160_get_info( int algo, size_t *contextsize,</span>
+<span class="lineNum">     563 </span>            :                byte **r_asnoid, int *r_asnlen, int *r_mdlen,
+<span class="lineNum">     564 </span>            :                void (**r_init)( void *c ),
+<span class="lineNum">     565 </span>            :                void (**r_write)( void *c, byte *buf, size_t nbytes ),
+<span class="lineNum">     566 </span>            :                void (**r_final)( void *c ),
+<span class="lineNum">     567 </span>            :                byte *(**r_read)( void *c )
+<span class="lineNum">     568 </span>            :              )
+<span class="lineNum">     569 </span>            : {
+<span class="lineNum">     570 </span>            :     static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
+<span class="lineNum">     571 </span>            :           { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
+<span class="lineNum">     572 </span>            :             0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     if( algo != 3 )</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     *contextsize = sizeof(RMD160_CONTEXT);</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     *r_asnoid = asn;</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     *r_asnlen = DIM(asn);</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     *r_mdlen = 20;</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     *(void  (**)(RMD160_CONTEXT *))r_init                 = rmd160_init;</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     *(void  (**)(RMD160_CONTEXT *, byte*, size_t))r_write = rmd160_write;</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     *(void  (**)(RMD160_CONTEXT *))r_final                = rmd160_final;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     *(byte *(**)(RMD160_CONTEXT *))r_read                 = rmd160_read;</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     return &quot;RIPEMD160&quot;;</span>
+<span class="lineNum">     587 </span>            : }
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     591 </span>            : static
+<span class="lineNum">     592 </span>            : #endif
+<span class="lineNum">     593 </span>            : const char * const gnupgext_version = &quot;RMD160 ($Revision: 1.17.2.4 $)&quot;;
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span>            : static struct {
+<span class="lineNum">     596 </span>            :     int class;
+<span class="lineNum">     597 </span>            :     int version;
+<span class="lineNum">     598 </span>            :     int  value;
+<span class="lineNum">     599 </span>            :     void (*func)(void);
+<span class="lineNum">     600 </span>            : } func_table[] = {
+<span class="lineNum">     601 </span>            :     { 10, 1, 0, (void(*)(void))rmd160_get_info },
+<span class="lineNum">     602 </span>            :     { 11, 1, 3 },
+<span class="lineNum">     603 </span>            : };
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            : #ifndef IS_MODULE
+<span class="lineNum">     607 </span>            : static
+<a name="608"><span class="lineNum">     608 </span>            : #endif</a>
+<span class="lineNum">     609 </span>            : void *
+<span class="lineNum">     610 </span><span class="lineCov">         64 : gnupgext_enum_func( int what, int *sequence, int *class, int *vers )</span>
+<span class="lineNum">     611 </span>            : {
+<span class="lineNum">     612 </span>            :     void *ret;
+<span class="lineNum">     613 </span><span class="lineCov">         64 :     int i = *sequence;</span>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :     do {
+<span class="lineNum">     616 </span><span class="lineCov">        192 :         if( i &gt;= DIM(func_table) || i &lt; 0 ) {</span>
+<span class="lineNum">     617 </span><span class="lineCov">         64 :             return NULL;</span>
+<span class="lineNum">     618 </span>            :         }
+<span class="lineNum">     619 </span><span class="lineCov">        128 :         *class = func_table[i].class;</span>
+<span class="lineNum">     620 </span><span class="lineCov">        128 :         *vers  = func_table[i].version;</span>
+<span class="lineNum">     621 </span><span class="lineCov">        128 :         switch( *class ) {</span>
+<span class="lineNum">     622 </span>            :           case 11:
+<span class="lineNum">     623 </span>            :           case 21:
+<span class="lineNum">     624 </span>            :           case 31:
+<span class="lineNum">     625 </span><span class="lineCov">         64 :             ret = &amp;func_table[i].value;</span>
+<span class="lineNum">     626 </span><span class="lineCov">         64 :             break;</span>
+<span class="lineNum">     627 </span>            :           default:
+<span class="lineNum">     628 </span><span class="lineCov">         64 :             ret = func_table[i].func;</span>
+<span class="lineNum">     629 </span><span class="lineCov">         64 :             break;</span>
+<span class="lineNum">     630 </span>            :         }
+<span class="lineNum">     631 </span><span class="lineCov">        128 :         i++;</span>
+<span class="lineNum">     632 </span><span class="lineCov">        128 :     } while( what &amp;&amp; what != *class );</span>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     *sequence = i;</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     636 </span>            : }
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span>            : 
+<a name="641"><span class="lineNum">     641 </span>            : #ifndef IS_MODULE</a>
+<span class="lineNum">     642 </span>            : void
+<span class="lineNum">     643 </span><span class="lineCov">         64 : rmd160_constructor(void)</span>
+<span class="lineNum">     644 </span>            : {
+<span class="lineNum">     645 </span><span class="lineCov">         64 :     register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );</span>
+<span class="lineNum">     646 </span><span class="lineCov">         64 : }</span>
+<span class="lineNum">     647 </span>            : #endif
+<span class="lineNum">     648 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

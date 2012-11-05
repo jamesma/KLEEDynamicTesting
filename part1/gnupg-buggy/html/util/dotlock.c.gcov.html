@@ -1,0 +1,450 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - util/dotlock.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">util</a> - dotlock.c<span style="font-size: 80%;"> (source / <a href="dotlock.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">127</td>
+            <td class="headerCovTableEntryLo">9.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">28.6 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* dotlock.c - dotfile locking</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999, 2000 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      28 </span>            : #ifndef  HAVE_DOSISH_SYSTEM
+<span class="lineNum">      29 </span>            : #include &lt;sys/utsname.h&gt;
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      36 </span>            : #include &quot;types.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;memory.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : struct dotlock_handle {
+<span class="lineNum">      41 </span>            :     struct dotlock_handle *next;
+<span class="lineNum">      42 </span>            :     char *tname;    /* name of lockfile template */
+<span class="lineNum">      43 </span>            :     char *lockname; /* name of the real lockfile */
+<span class="lineNum">      44 </span>            :     int locked;     /* lock status */
+<span class="lineNum">      45 </span>            :     int disable;    /* locking */
+<span class="lineNum">      46 </span>            : };
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : static volatile DOTLOCK all_lockfiles;
+<span class="lineNum">      50 </span>            : static int never_lock;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : static int read_lockfile( const char *name );
+<a name="53"><span class="lineNum">      53 </span>            : </a>
+<span class="lineNum">      54 </span>            : void
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 : disable_dotlock(void)</span>
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     never_lock = 1;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /****************
+<span class="lineNum">      61 </span>            :  * Create a lockfile with the given name and return an object of
+<span class="lineNum">      62 </span>            :  * type DOTLOCK which may be used later to actually do the lock.
+<span class="lineNum">      63 </span>            :  * A cleanup routine gets installed to cleanup left over locks
+<span class="lineNum">      64 </span>            :  * or other files used together with the lockmechanism.
+<span class="lineNum">      65 </span>            :  * Althoug the function is called dotlock, this does not necessarily
+<span class="lineNum">      66 </span>            :  * mean that real lockfiles are used - the function may decide to
+<span class="lineNum">      67 </span>            :  * use fcntl locking.  Calling the function with NULL only install
+<span class="lineNum">      68 </span>            :  * the atexit handler and maybe used to assure that the cleanup
+<span class="lineNum">      69 </span>            :  * is called after all other atexit handlers.
+<span class="lineNum">      70 </span>            :  *
+<span class="lineNum">      71 </span>            :  * Notes: This function creates a lock file in the same directory
+<span class="lineNum">      72 </span>            :  *        as file_to_lock with the name &quot;file_to_lock.lock&quot;
+<span class="lineNum">      73 </span>            :  *        A temporary file &quot;.#lk.&lt;hostname&gt;.pid[.threadid] is used.
+<span class="lineNum">      74 </span>            :  *        This function does nothing for Windoze.
+<a name="75"><span class="lineNum">      75 </span>            :  */</a>
+<span class="lineNum">      76 </span>            : DOTLOCK
+<span class="lineNum">      77 </span><span class="lineCov">        714 : create_dotlock( const char *file_to_lock )</span>
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            :     static int initialized;
+<span class="lineNum">      80 </span>            :     DOTLOCK h;
+<span class="lineNum">      81 </span><span class="lineCov">        714 :     int  fd = -1;</span>
+<span class="lineNum">      82 </span>            :     char pidstr[16];
+<span class="lineNum">      83 </span>            :   #ifndef  HAVE_DOSISH_SYSTEM
+<span class="lineNum">      84 </span>            :     struct utsname utsbuf;
+<span class="lineNum">      85 </span>            :   #endif
+<span class="lineNum">      86 </span>            :     const char *nodename;
+<span class="lineNum">      87 </span>            :     const char *dirpart;
+<span class="lineNum">      88 </span>            :     int dirpartlen;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">        714 :     if( !initialized ) {</span>
+<span class="lineNum">      91 </span><span class="lineCov">        714 :         atexit( remove_lockfiles );</span>
+<span class="lineNum">      92 </span><span class="lineCov">        714 :         initialized = 1;</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span><span class="lineCov">        714 :     if( !file_to_lock )</span>
+<span class="lineNum">      95 </span><span class="lineCov">        714 :         return NULL;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     h = m_alloc_clear( sizeof *h );</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if( never_lock ) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         h-&gt;disable = 1;</span>
+<span class="lineNum">     100 </span>            :       #ifdef _REENTRANT
+<span class="lineNum">     101 </span>            :         /* fixme: aquire mutex on all_lockfiles */
+<span class="lineNum">     102 </span>            :       #endif
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         h-&gt;next = all_lockfiles;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         all_lockfiles = h;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return h;</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : #ifndef HAVE_DOSISH_SYSTEM
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     sprintf( pidstr, &quot;%10d\n&quot;, (int)getpid() );</span>
+<span class="lineNum">     111 </span>            :     /* fixme: add the hostname to the second line (FQDN or IP addr?) */
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :     /* create a temporary file */
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     if( uname( &amp;utsbuf ) )</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         nodename = &quot;unknown&quot;;</span>
+<span class="lineNum">     116 </span>            :     else
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         nodename = utsbuf.nodename;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     if( !(dirpart = strrchr( file_to_lock, '/' )) ) {</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         dirpart = &quot;.&quot;;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         dirpartlen = 1;</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            :     else {
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         dirpartlen = dirpart - file_to_lock;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         dirpart = file_to_lock;</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :   #ifdef _REENTRANT
+<span class="lineNum">     129 </span>            :     /* fixme: aquire mutex on all_lockfiles */
+<span class="lineNum">     130 </span>            :   #endif
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     h-&gt;next = all_lockfiles;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     all_lockfiles = h;</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     h-&gt;tname = m_alloc( dirpartlen + 6+30+ strlen(nodename) + 11 );</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     sprintf( h-&gt;tname, &quot;%.*s/.#lk%p.%s.%d&quot;,</span>
+<span class="lineNum">     136 </span>            :              dirpartlen, dirpart, h, nodename, (int)getpid() );
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     do {
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         errno = 0;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         fd = open( h-&gt;tname, O_WRONLY|O_CREAT|O_EXCL,</span>
+<span class="lineNum">     141 </span>            :                           S_IRUSR|S_IRGRP|S_IROTH|S_IWUSR );
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     } while( fd == -1 &amp;&amp; errno == EINTR );</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if( fd == -1 ) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         all_lockfiles = h-&gt;next;</span>
+<span class="lineNum">     145 </span>            :         log_error( &quot;failed to create temporary file `%s': %s\n&quot;,
+<span class="lineNum">     146 </span>            :                                             h-&gt;tname, strerror(errno));
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         m_free(h-&gt;tname);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         m_free(h);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     150 </span>            :     }
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     if( write(fd, pidstr, 11 ) != 11 ) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         all_lockfiles = h-&gt;next;</span>
+<span class="lineNum">     153 </span>            :       #ifdef _REENTRANT
+<span class="lineNum">     154 </span>            :         /* release mutex */
+<span class="lineNum">     155 </span>            :       #endif
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         log_fatal( &quot;error writing to `%s': %s\n&quot;, h-&gt;tname, strerror(errno) );</span>
+<span class="lineNum">     157 </span>            :         close(fd);
+<span class="lineNum">     158 </span>            :         unlink(h-&gt;tname);
+<span class="lineNum">     159 </span>            :         m_free(h-&gt;tname);
+<span class="lineNum">     160 </span>            :         m_free(h);
+<span class="lineNum">     161 </span>            :         return NULL;
+<span class="lineNum">     162 </span>            :     }
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if( close(fd) ) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         all_lockfiles = h-&gt;next;</span>
+<span class="lineNum">     165 </span>            :       #ifdef _REENTRANT
+<span class="lineNum">     166 </span>            :         /* release mutex */
+<span class="lineNum">     167 </span>            :       #endif
+<span class="lineNum">     168 </span>            :         log_error( &quot;error closing `%s': %s\n&quot;, h-&gt;tname, strerror(errno));
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         unlink(h-&gt;tname);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         m_free(h-&gt;tname);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         m_free(h);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            :   #ifdef _REENTRANT
+<span class="lineNum">     176 </span>            :     /* release mutex */
+<span class="lineNum">     177 </span>            :   #endif
+<span class="lineNum">     178 </span>            : #endif /* !HAVE_DOSISH_SYSTEM */
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     h-&gt;lockname = m_alloc( strlen(file_to_lock) + 6 );</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     strcpy(stpcpy(h-&gt;lockname, file_to_lock), &quot;.lock&quot;);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     return h;</span>
+<span class="lineNum">     182 </span>            : }
+<a name="183"><span class="lineNum">     183 </span>            : </a>
+<span class="lineNum">     184 </span>            : static int
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 : maybe_deadlock( DOTLOCK h )</span>
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span>            :     DOTLOCK r;
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     for( r=all_lockfiles; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         if( r != h &amp;&amp; r-&gt;locked )</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             return 1;</span>
+<span class="lineNum">     192 </span>            :     }
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     194 </span>            : }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            : /****************
+<span class="lineNum">     197 </span>            :  * Do a lock on H. A TIMEOUT of 0 returns immediately,
+<span class="lineNum">     198 </span>            :  * -1 waits forever (hopefully not), other
+<span class="lineNum">     199 </span>            :  * values are timeouts in milliseconds.
+<span class="lineNum">     200 </span>            :  * Returns: 0 on success
+<a name="201"><span class="lineNum">     201 </span>            :  */</a>
+<span class="lineNum">     202 </span>            : int
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 : make_dotlock( DOTLOCK h, long timeout )</span>
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            : #ifdef HAVE_DOSISH_SYSTEM
+<span class="lineNum">     206 </span>            :     return 0;
+<span class="lineNum">     207 </span>            : #else
+<span class="lineNum">     208 </span>            :     int  pid;
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     const char *maybe_dead=&quot;&quot;;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     int backoff=0;</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     if( h-&gt;disable ) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     214 </span>            :     }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     if( h-&gt;locked ) {</span>
+<span class="lineNum">     217 </span>            :         log_debug(&quot;oops, `%s' is already locked\n&quot;, h-&gt;lockname );
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     219 </span>            :     }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :     for(;;) {
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         if( !link(h-&gt;tname, h-&gt;lockname) ) {</span>
+<span class="lineNum">     223 </span>            :             /* fixme: better use stat to check the link count */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             h-&gt;locked = 1;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             return 0; /* okay */</span>
+<span class="lineNum">     226 </span>            :         }
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         if( errno != EEXIST ) {</span>
+<span class="lineNum">     228 </span>            :             log_error( &quot;lock not made: link() failed: %s\n&quot;, strerror(errno) );
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     230 </span>            :         }
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         if( (pid = read_lockfile(h-&gt;lockname)) == -1 ) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             if( errno != ENOENT ) {</span>
+<span class="lineNum">     233 </span>            :                 log_info(&quot;cannot read lockfile\n&quot;);
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     235 </span>            :             }
+<span class="lineNum">     236 </span>            :             log_info( &quot;lockfile disappeared\n&quot;);
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     238 </span>            :         }
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         else if( pid == getpid() ) {</span>
+<span class="lineNum">     240 </span>            :             log_info( &quot;Oops: lock already hold by us\n&quot;);
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :             h-&gt;locked = 1;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             return 0; /* okay */</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         else if( kill(pid, 0) &amp;&amp; errno == ESRCH ) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             maybe_dead = &quot; - probably dead&quot;;</span>
+<span class="lineNum">     246 </span>            :          #if 0 /* we should not do this without checking the permissions */
+<span class="lineNum">     247 </span>            :                /* and the hostname */
+<span class="lineNum">     248 </span>            :             log_info( &quot;removing stale lockfile (created by %d)&quot;, pid );
+<span class="lineNum">     249 </span>            :          #endif
+<span class="lineNum">     250 </span>            :         }
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         if( timeout == -1 ) {</span>
+<span class="lineNum">     252 </span>            :             struct timeval tv;
+<span class="lineNum">     253 </span>            :             log_info( &quot;waiting for lock (hold by %d%s) %s...\n&quot;,
+<span class="lineNum">     254 </span>            :                       pid, maybe_dead, maybe_deadlock(h)? &quot;(deadlock?) &quot;:&quot;&quot;);
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :             /* can't use sleep, cause signals may be blocked */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             tv.tv_sec = 1 + backoff;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             tv.tv_usec = 0;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :             select(0, NULL, NULL, NULL, &amp;tv);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             if( backoff &lt; 10 )</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 backoff++ ;</span>
+<span class="lineNum">     263 </span>            :         }
+<span class="lineNum">     264 </span>            :         else
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     267 </span>            :     /*not reached */
+<span class="lineNum">     268 </span>            : #endif /* !HAVE_DOSISH_SYSTEM */
+<span class="lineNum">     269 </span>            : }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : /****************
+<span class="lineNum">     273 </span>            :  * release a lock
+<span class="lineNum">     274 </span>            :  * Returns: 0 := success
+<a name="275"><span class="lineNum">     275 </span>            :  */</a>
+<span class="lineNum">     276 </span>            : int
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 : release_dotlock( DOTLOCK h )</span>
+<span class="lineNum">     278 </span>            : {
+<span class="lineNum">     279 </span>            : #ifdef HAVE_DOSISH_SYSTEM
+<span class="lineNum">     280 </span>            :     return 0;
+<span class="lineNum">     281 </span>            : #else
+<span class="lineNum">     282 </span>            :     int pid;
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     if( h-&gt;disable ) {</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     286 </span>            :     }
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     if( !h-&gt;locked ) {</span>
+<span class="lineNum">     289 </span>            :         log_debug(&quot;oops, `%s' is not locked\n&quot;, h-&gt;lockname );
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     pid = read_lockfile( h-&gt;lockname );</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     if( pid == -1 ) {</span>
+<span class="lineNum">     295 </span>            :         log_error( &quot;release_dotlock: lockfile error\n&quot;);
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     if( pid != getpid() ) {</span>
+<span class="lineNum">     299 </span>            :         log_error( &quot;release_dotlock: not our lock (pid=%d)\n&quot;, pid);
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     301 </span>            :     }
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     if( unlink( h-&gt;lockname ) ) {</span>
+<span class="lineNum">     303 </span>            :         log_error( &quot;release_dotlock: error removing lockfile `%s'&quot;,
+<span class="lineNum">     304 </span>            :                                                         h-&gt;lockname);
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     306 </span>            :     }
+<span class="lineNum">     307 </span>            :     /* fixme: check that the link count is now 1 */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     h-&gt;locked = 0;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     310 </span>            : #endif /* !HAVE_DOSISH_SYSTEM */
+<span class="lineNum">     311 </span>            : }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : /****************
+<span class="lineNum">     315 </span>            :  * Read the lock file and return the pid, returns -1 on error.
+<a name="316"><span class="lineNum">     316 </span>            :  */</a>
+<span class="lineNum">     317 </span>            : static int
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 : read_lockfile( const char *name )</span>
+<span class="lineNum">     319 </span>            : {
+<span class="lineNum">     320 </span>            :   #ifdef HAVE_DOSISH_SYSTEM
+<span class="lineNum">     321 </span>            :     return 0;
+<span class="lineNum">     322 </span>            :   #else
+<span class="lineNum">     323 </span>            :     int fd, pid;
+<span class="lineNum">     324 </span>            :     char pidstr[16];
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if( (fd = open(name, O_RDONLY)) == -1 ) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         int e = errno;</span>
+<span class="lineNum">     328 </span>            :         log_debug(&quot;error opening lockfile `%s': %s\n&quot;, name, strerror(errno) );
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         errno = e;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     331 </span>            :     }
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     if( read(fd, pidstr, 10 ) != 10 ) {  /* Read 10 digits w/o newline */</span>
+<span class="lineNum">     333 </span>            :         log_debug(&quot;error reading lockfile `%s'&quot;, name );
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         close(fd);</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         errno = 0;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     337 </span>            :     }
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     pidstr[10] = 0;  /* terminate pid string */</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     close(fd);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     pid = atoi(pidstr);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if( !pid || pid == -1 ) {</span>
+<span class="lineNum">     342 </span>            :         log_error(&quot;invalid pid %d in lockfile `%s'&quot;, pid, name );
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         errno = 0;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     return pid;</span>
+<span class="lineNum">     347 </span>            :   #endif
+<span class="lineNum">     348 </span>            : }
+<span class="lineNum">     349 </span>            : 
+<a name="350"><span class="lineNum">     350 </span>            : </a>
+<span class="lineNum">     351 </span>            : void
+<span class="lineNum">     352 </span><span class="lineCov">        714 : remove_lockfiles()</span>
+<span class="lineNum">     353 </span>            : {
+<span class="lineNum">     354 </span>            :   #ifndef HAVE_DOSISH_SYSTEM
+<span class="lineNum">     355 </span>            :     DOTLOCK h, h2;
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">        714 :     h = all_lockfiles;</span>
+<span class="lineNum">     358 </span><span class="lineCov">        714 :     all_lockfiles = NULL;</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineCov">       1428 :     while( h ) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         h2 = h-&gt;next;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         if( !h-&gt;disable ) {</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             if( h-&gt;locked )</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                 unlink( h-&gt;lockname );</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             unlink(h-&gt;tname);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             m_free(h-&gt;tname);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             m_free(h-&gt;lockname);</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         m_free(h);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         h = h2;</span>
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span>            :   #endif
+<span class="lineNum">     373 </span><span class="lineCov">        714 : }</span>
+<span class="lineNum">     374 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

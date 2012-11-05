@@ -1,0 +1,599 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/md.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - md.c<span style="font-size: 80%;"> (source / <a href="md.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">210</td>
+            <td class="headerCovTableEntryLo">1.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryLo">5.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* md.c  -  message digest dispatcher</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      27 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;cipher.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;errors.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;dynload.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;rmd.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /****************
+<span class="lineNum">      35 </span>            :  * This structure is used for the list of available algorithms
+<span class="lineNum">      36 </span>            :  * and for the list of algorithms in MD_HANDLE.
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span>            : struct md_digest_list_s {
+<span class="lineNum">      39 </span>            :     struct md_digest_list_s *next;
+<span class="lineNum">      40 </span>            :     const char *name;
+<span class="lineNum">      41 </span>            :     int algo;
+<span class="lineNum">      42 </span>            :     byte *asnoid;
+<span class="lineNum">      43 </span>            :     int asnlen;
+<span class="lineNum">      44 </span>            :     int mdlen;
+<span class="lineNum">      45 </span>            :     void (*init)( void *c );
+<span class="lineNum">      46 </span>            :     void (*write)( void *c, byte *buf, size_t nbytes );
+<span class="lineNum">      47 </span>            :     void (*final)( void *c );
+<span class="lineNum">      48 </span>            :     byte *(*read)( void *c );
+<span class="lineNum">      49 </span>            :     size_t contextsize; /* allocate this amount of context */
+<span class="lineNum">      50 </span>            :     PROPERLY_ALIGNED_TYPE context;
+<span class="lineNum">      51 </span>            : };
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : static struct md_digest_list_s *digest_list;
+<span class="lineNum">      54 </span>            : 
+<a name="55"><span class="lineNum">      55 </span>            : </a>
+<span class="lineNum">      56 </span>            : static struct md_digest_list_s *
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : new_list_item( int algo,</span>
+<span class="lineNum">      58 </span>            :                const char *(*get_info)( int, size_t*,byte**, int*, int*,
+<span class="lineNum">      59 </span>            :                                        void (**)(void*),
+<span class="lineNum">      60 </span>            :                                        void (**)(void*,byte*,size_t),
+<span class="lineNum">      61 </span>            :                                        void (**)(void*),byte *(**)(void*)) )
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     r = m_alloc_clear( sizeof *r );</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     r-&gt;algo = algo,</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     r-&gt;name = (*get_info)( algo, &amp;r-&gt;contextsize,</span>
+<span class="lineNum">      68 </span>            :                            &amp;r-&gt;asnoid, &amp;r-&gt;asnlen, &amp;r-&gt;mdlen,
+<span class="lineNum">      69 </span>            :                            &amp;r-&gt;init, &amp;r-&gt;write, &amp;r-&gt;final, &amp;r-&gt;read );
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     if( !r-&gt;name ) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         m_free(r);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         r = NULL;</span>
+<span class="lineNum">      73 </span>            :     }
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     return r;</span>
+<span class="lineNum">      75 </span>            : }
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : /****************
+<span class="lineNum">      80 </span>            :  * Try to load the modules with the requeste algorithm
+<span class="lineNum">      81 </span>            :  * and return true if new modules are available
+<span class="lineNum">      82 </span>            :  * If req_alog is -1 try to load all digest algorithms.
+<a name="83"><span class="lineNum">      83 </span>            :  */</a>
+<span class="lineNum">      84 </span>            : static int
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 : load_digest_module( int req_algo )</span>
+<span class="lineNum">      86 </span>            : {
+<span class="lineNum">      87 </span>            :     static int initialized = 0;
+<span class="lineNum">      88 </span>            :     static u32 checked_algos[256/32];
+<span class="lineNum">      89 </span>            :     static int checked_all = 0;
+<span class="lineNum">      90 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     void *context = NULL;</span>
+<span class="lineNum">      92 </span>            :     int algo;
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     int any = 0;</span>
+<span class="lineNum">      94 </span>            :     const char *(*get_info)( int, size_t*,byte**, int*, int*,
+<span class="lineNum">      95 </span>            :                             void (**)(void*),
+<span class="lineNum">      96 </span>            :                             void (**)(void*,byte*,size_t),
+<span class="lineNum">      97 </span>            :                             void (**)(void*),byte *(**)(void*));
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     if( !initialized ) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         cipher_modules_constructor();</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         initialized = 1;</span>
+<span class="lineNum">     102 </span>            :     }
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     algo = req_algo;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     if( algo &gt; 255 || !algo )</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return 0; /* algorithm number too high (does not fit into out bitmap)*/</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     if( checked_all )</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         return 0; /* already called with -1 */</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if( algo &lt; 0 )</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         checked_all = 1;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     else if( (checked_algos[algo/32] &amp; (1 &lt;&lt; (algo%32))) )</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         return 0; /* already checked and not found */</span>
+<span class="lineNum">     112 </span>            :     else
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         checked_algos[algo/32] |= (1 &lt;&lt; (algo%32));</span>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     while( enum_gnupgext_digests( &amp;context, &amp;algo, &amp;get_info ) ) {</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         if( req_algo != -1 &amp;&amp; algo != req_algo )</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         for(r=digest_list; r; r = r-&gt;next )</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         if( r ) {</span>
+<span class="lineNum">     122 </span>            :             log_info(&quot;skipping digest %d: already loaded\n&quot;, algo );
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     124 </span>            :         }
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         r = new_list_item( algo, get_info );</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         if( ! r ) {</span>
+<span class="lineNum">     127 </span>            :             log_info(&quot;skipping digest %d: no name\n&quot;, algo );
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            :         /* put it into the list */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         if( g10_opt_verbose &gt; 1 )</span>
+<span class="lineNum">     132 </span>            :             log_info(&quot;loaded digest %d\n&quot;, algo);
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         r-&gt;next = digest_list;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         digest_list = r;</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         any = 1;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         if( req_algo != -1 )</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     enum_gnupgext_digests( &amp;context, NULL, NULL );</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     return any;</span>
+<span class="lineNum">     141 </span>            : }
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : /****************
+<span class="lineNum">     146 </span>            :  * Map a string to the digest algo
+<a name="147"><span class="lineNum">     147 </span>            :  */</a>
+<span class="lineNum">     148 </span>            : int
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 : string_to_digest_algo( const char *string )</span>
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :     do {
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next )</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             if( !stricmp( r-&gt;name, string ) )</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                 return r-&gt;algo;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module(-1) );</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     159 </span>            : }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : /****************
+<span class="lineNum">     163 </span>            :  * Map a digest algo to a string
+<a name="164"><span class="lineNum">     164 </span>            :  */</a>
+<span class="lineNum">     165 </span>            : const char *
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 : digest_algo_to_string( int algo )</span>
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :     do {
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next )</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                 return r-&gt;name;</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module( algo ) );</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     176 </span>            : }
+<span class="lineNum">     177 </span>            : 
+<a name="178"><span class="lineNum">     178 </span>            : </a>
+<span class="lineNum">     179 </span>            : int
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : check_digest_algo( int algo )</span>
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :     do {
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next )</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module(algo) );</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     return G10ERR_DIGEST_ALGO;</span>
+<span class="lineNum">     190 </span>            : }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            : /****************
+<span class="lineNum">     195 </span>            :  * Open a message digest handle for use with algorithm ALGO.
+<span class="lineNum">     196 </span>            :  * More algorithms may be added by md_enable(). The initial algorithm
+<span class="lineNum">     197 </span>            :  * may be 0.
+<a name="198"><span class="lineNum">     198 </span>            :  */</a>
+<span class="lineNum">     199 </span>            : MD_HANDLE
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 : md_open( int algo, int secure )</span>
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :     MD_HANDLE hd;
+<span class="lineNum">     203 </span>            :     int bufsize;
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     if( secure ) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         bufsize = 512 - sizeof( *hd );</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         hd = m_alloc_secure_clear( sizeof *hd + bufsize );</span>
+<span class="lineNum">     208 </span>            :     }
+<span class="lineNum">     209 </span>            :     else {
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         bufsize = 1024 - sizeof( *hd );</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         hd = m_alloc_clear( sizeof *hd + bufsize );</span>
+<span class="lineNum">     212 </span>            :     }
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     hd-&gt;bufsize = bufsize+1; /* hd has already one byte allocated */</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     hd-&gt;secure = secure;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     if( algo )</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         md_enable( hd, algo );</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     fast_random_poll();</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     return hd;</span>
+<span class="lineNum">     220 </span>            : }
+<a name="221"><span class="lineNum">     221 </span>            : </a>
+<span class="lineNum">     222 </span>            : void
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 : md_enable( MD_HANDLE h, int algo )</span>
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span>            :     struct md_digest_list_s *r, *ac;
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     for( ac=h-&gt;list; ac; ac = ac-&gt;next )</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         if( ac-&gt;algo == algo )</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :             return ; /* already enabled */</span>
+<span class="lineNum">     230 </span>            :     /* find the algorithm */
+<span class="lineNum">     231 </span>            :     do {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next )</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module( algo ) );</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     if( !r ) {</span>
+<span class="lineNum">     237 </span>            :         log_error(&quot;md_enable: algorithm %d not available\n&quot;, algo );
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     239 </span>            :     }
+<span class="lineNum">     240 </span>            :     /* and allocate a new list entry */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     ac = h-&gt;secure? m_alloc_secure( sizeof *ac + r-&gt;contextsize</span>
+<span class="lineNum">     242 </span>            :                                                - sizeof(r-&gt;context) )
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                   : m_alloc( sizeof *ac + r-&gt;contextsize</span>
+<span class="lineNum">     244 </span>            :                                                - sizeof(r-&gt;context) );
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     *ac = *r;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     ac-&gt;next = h-&gt;list;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     h-&gt;list = ac;</span>
+<span class="lineNum">     248 </span>            :     /* and init this instance */
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     (*ac-&gt;init)( &amp;ac-&gt;context.c );</span>
+<span class="lineNum">     250 </span>            : }
+<span class="lineNum">     251 </span>            : 
+<a name="252"><span class="lineNum">     252 </span>            : </a>
+<span class="lineNum">     253 </span>            : MD_HANDLE
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 : md_copy( MD_HANDLE a )</span>
+<span class="lineNum">     255 </span>            : {
+<span class="lineNum">     256 </span>            :     MD_HANDLE b;
+<span class="lineNum">     257 </span>            :     struct md_digest_list_s *ar, *br;
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if( a-&gt;bufcount )</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         md_write( a, NULL, 0 );</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     b = a-&gt;secure ? m_alloc_secure( sizeof *b + a-&gt;bufsize - 1 )</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                   : m_alloc( sizeof *b + a-&gt;bufsize - 1 );</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     memcpy( b, a, sizeof *a + a-&gt;bufsize - 1 );</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     b-&gt;list = NULL;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     b-&gt;debug = NULL;</span>
+<span class="lineNum">     266 </span>            :     /* and now copy the complete list of algorithms */
+<span class="lineNum">     267 </span>            :     /* I know that the copied list is reversed, but that doesn't matter */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     for( ar=a-&gt;list; ar; ar = ar-&gt;next ) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         br = a-&gt;secure ? m_alloc_secure( sizeof *br + ar-&gt;contextsize</span>
+<span class="lineNum">     270 </span>            :                                                - sizeof(ar-&gt;context) )
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                        : m_alloc( sizeof *br + ar-&gt;contextsize</span>
+<span class="lineNum">     272 </span>            :                                                - sizeof(ar-&gt;context) );
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         memcpy( br, ar, sizeof(*br) + ar-&gt;contextsize</span>
+<span class="lineNum">     274 </span>            :                                     - sizeof(ar-&gt;context) );
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         br-&gt;next = b-&gt;list;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         b-&gt;list = br;</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if( a-&gt;debug )</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         md_start_debug( b, &quot;unknown&quot; );</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     return b;</span>
+<span class="lineNum">     282 </span>            : }
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            : /****************
+<span class="lineNum">     286 </span>            :  * Reset all contexts and discard any buffered stuff.  This may be used
+<span class="lineNum">     287 </span>            :  * instead of a md_close(); md_open().
+<a name="288"><span class="lineNum">     288 </span>            :  */</a>
+<span class="lineNum">     289 </span>            : void
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 : md_reset( MD_HANDLE a )</span>
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     a-&gt;bufcount = a-&gt;finalized = 0;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     for( r=a-&gt;list; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         memset( r-&gt;context.c, 0, r-&gt;contextsize );</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         (*r-&gt;init)( &amp;r-&gt;context.c );</span>
+<span class="lineNum">     298 </span>            :     }
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     300 </span>            : 
+<a name="301"><span class="lineNum">     301 </span>            : </a>
+<span class="lineNum">     302 </span>            : void
+<span class="lineNum">     303 </span><span class="lineCov">         82 : md_close(MD_HANDLE a)</span>
+<span class="lineNum">     304 </span>            : {
+<span class="lineNum">     305 </span>            :     struct md_digest_list_s *r, *r2;
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">         82 :     if( !a )</span>
+<span class="lineNum">     308 </span><span class="lineCov">         82 :         return;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     if( a-&gt;debug )</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         md_stop_debug(a);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     for(r=a-&gt;list; r; r = r2 ) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         r2 = r-&gt;next;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         m_free(r);</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     m_free(a);</span>
+<span class="lineNum">     316 </span>            : }
+<span class="lineNum">     317 </span>            : 
+<a name="318"><span class="lineNum">     318 </span>            : </a>
+<span class="lineNum">     319 </span>            : void
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 : md_write( MD_HANDLE a, byte *inbuf, size_t inlen)</span>
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     if( a-&gt;debug ) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         if( a-&gt;bufcount &amp;&amp; fwrite(a-&gt;buffer, a-&gt;bufcount, 1, a-&gt;debug ) != 1 )</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             BUG();</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         if( inlen &amp;&amp; fwrite(inbuf, inlen, 1, a-&gt;debug ) != 1 )</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             BUG();</span>
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     for(r=a-&gt;list; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         (*r-&gt;write)( &amp;r-&gt;context.c, a-&gt;buffer, a-&gt;bufcount );</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         (*r-&gt;write)( &amp;r-&gt;context.c, inbuf, inlen );</span>
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     a-&gt;bufcount = 0;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : 
+<a name="338"><span class="lineNum">     338 </span>            : </a>
+<span class="lineNum">     339 </span>            : void
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 : md_final(MD_HANDLE a)</span>
+<span class="lineNum">     341 </span>            : {
+<span class="lineNum">     342 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     if( a-&gt;finalized )</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     if( a-&gt;bufcount )</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         md_write( a, NULL, 0 );</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     for(r=a-&gt;list; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         (*r-&gt;final)( &amp;r-&gt;context.c );</span>
+<span class="lineNum">     352 </span>            :     }
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     a-&gt;finalized = 1;</span>
+<span class="lineNum">     354 </span>            : }
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : /****************
+<span class="lineNum">     358 </span>            :  * if ALGO is null get the digest for the used algo (which should be only one)
+<a name="359"><span class="lineNum">     359 </span>            :  */</a>
+<span class="lineNum">     360 </span>            : byte *
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 : md_read( MD_HANDLE a, int algo )</span>
+<span class="lineNum">     362 </span>            : {
+<span class="lineNum">     363 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     if( !algo ) {  /* return the first algorithm */</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         if( (r=a-&gt;list) ) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             if( r-&gt;next )</span>
+<span class="lineNum">     368 </span>            :                 log_debug(&quot;more than algorithm in md_read(0)\n&quot;);
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :             return (*r-&gt;read)( &amp;r-&gt;context.c );</span>
+<span class="lineNum">     370 </span>            :         }
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span>            :     else {
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         for(r=a-&gt;list; r; r = r-&gt;next )</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                 return (*r-&gt;read)( &amp;r-&gt;context.c );</span>
+<span class="lineNum">     376 </span>            :     }
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     BUG();</span>
+<span class="lineNum">     378 </span>            :     return NULL;
+<span class="lineNum">     379 </span>            : }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            : /****************
+<span class="lineNum">     383 </span>            :  * This function combines md_final and md_read but keeps the context
+<span class="lineNum">     384 </span>            :  * intact.  This function can be used to calculate intermediate
+<span class="lineNum">     385 </span>            :  * digests.  The digest is copied into buffer and the digestlength is
+<span class="lineNum">     386 </span>            :  * returned.  If buffer is NULL only the needed size for buffer is returned.
+<span class="lineNum">     387 </span>            :  * buflen gives the max size of buffer. If the buffer is too shourt to
+<span class="lineNum">     388 </span>            :  * hold the complete digest, the buffer is filled with as many bytes are
+<span class="lineNum">     389 </span>            :  * possible and this value is returned.
+<a name="390"><span class="lineNum">     390 </span>            :  */</a>
+<span class="lineNum">     391 </span>            : int
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 : md_digest( MD_HANDLE a, int algo, byte *buffer, int buflen )</span>
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     struct md_digest_list_s *r = NULL;</span>
+<span class="lineNum">     395 </span>            :     char *context;
+<span class="lineNum">     396 </span>            :     char *digest;
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     if( a-&gt;bufcount )</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         md_write( a, NULL, 0 );</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     if( !algo ) {  /* return digest for the first algorithm */</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         if( (r=a-&gt;list) &amp;&amp; r-&gt;next )</span>
+<span class="lineNum">     403 </span>            :             log_debug(&quot;more than algorithm in md_digest(0)\n&quot;);
+<span class="lineNum">     404 </span>            :     }
+<span class="lineNum">     405 </span>            :     else {
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         for(r=a-&gt;list; r; r = r-&gt;next )</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     409 </span>            :     }
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     if( !r )</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         BUG();</span>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if( !buffer )</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         return r-&gt;mdlen;</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            :     /* I don't want to change the interface, so I simply work on a copy
+<span class="lineNum">     417 </span>            :      * the context (extra overhead - should be fixed)*/
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     context = a-&gt;secure ? m_alloc_secure( r-&gt;contextsize )</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :                         : m_alloc( r-&gt;contextsize );</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     memcpy( context, r-&gt;context.c, r-&gt;contextsize );</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     (*r-&gt;final)( context );</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     digest = (*r-&gt;read)( context );</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if( buflen &gt; r-&gt;mdlen )</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         buflen = r-&gt;mdlen;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     memcpy( buffer, digest, buflen );</span>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     m_free(context);</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     return buflen;</span>
+<span class="lineNum">     430 </span>            : }
+<span class="lineNum">     431 </span>            : 
+<a name="432"><span class="lineNum">     432 </span>            : </a>
+<span class="lineNum">     433 </span>            : int
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : md_get_algo( MD_HANDLE a )</span>
+<span class="lineNum">     435 </span>            : {
+<span class="lineNum">     436 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     if( (r=a-&gt;list) ) {</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         if( r-&gt;next )</span>
+<span class="lineNum">     440 </span>            :             log_error(&quot;WARNING: more than algorithm in md_get_algo()\n&quot;);
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         return r-&gt;algo;</span>
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     444 </span>            : }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            : /****************
+<span class="lineNum">     447 </span>            :  * Return the length of the digest
+<a name="448"><span class="lineNum">     448 </span>            :  */</a>
+<span class="lineNum">     449 </span>            : int
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 : md_digest_length( int algo )</span>
+<span class="lineNum">     451 </span>            : {
+<span class="lineNum">     452 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :     do {
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo )</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 return r-&gt;mdlen;</span>
+<span class="lineNum">     458 </span>            :         }
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module( algo ) );</span>
+<span class="lineNum">     460 </span>            :     log_error(&quot;WARNING: no length for md algo %d\n&quot;, algo);
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     462 </span>            : }
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : /* Hmmm: add a mode to enumerate the OIDs
+<a name="466"><span class="lineNum">     466 </span>            :  *      to make g10/sig-check.c more portable */</a>
+<span class="lineNum">     467 </span>            : const byte *
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 : md_asn_oid( int algo, size_t *asnlen, size_t *mdlen )</span>
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     struct md_digest_list_s *r;
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :     do {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         for(r = digest_list; r; r = r-&gt;next ) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             if( r-&gt;algo == algo ) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 if( asnlen )</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                     *asnlen = r-&gt;asnlen;</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                 if( mdlen )</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                     *mdlen = r-&gt;mdlen;</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 return r-&gt;asnoid;</span>
+<span class="lineNum">     480 </span>            :             }
+<span class="lineNum">     481 </span>            :         }
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     } while( !r &amp;&amp; load_digest_module( algo ) );</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     log_bug(&quot;no asn for md algo %d\n&quot;, algo);</span>
+<span class="lineNum">     484 </span>            :     return NULL;
+<span class="lineNum">     485 </span>            : }
+<span class="lineNum">     486 </span>            : 
+<a name="487"><span class="lineNum">     487 </span>            : </a>
+<span class="lineNum">     488 </span>            : void
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 : md_start_debug( MD_HANDLE md, const char *suffix )</span>
+<span class="lineNum">     490 </span>            : {
+<span class="lineNum">     491 </span>            :     static int idx=0;
+<span class="lineNum">     492 </span>            :     char buf[25];
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     if( md-&gt;debug ) {</span>
+<span class="lineNum">     495 </span>            :         log_debug(&quot;Oops: md debug already started\n&quot;);
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     497 </span>            :     }
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     idx++;</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     sprintf(buf, &quot;dbgmd-%05d.%.10s&quot;, idx, suffix );</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     md-&gt;debug = fopen(buf, &quot;w&quot;);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     if( !md-&gt;debug )</span>
+<span class="lineNum">     502 </span>            :         log_debug(&quot;md debug: can't open %s\n&quot;, buf );
+<span class="lineNum">     503 </span>            : }
+<a name="504"><span class="lineNum">     504 </span>            : </a>
+<span class="lineNum">     505 </span>            : void
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 : md_stop_debug( MD_HANDLE md )</span>
+<span class="lineNum">     507 </span>            : {
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     if( md-&gt;debug ) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         if( md-&gt;bufcount )</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :             md_write( md, NULL, 0 );</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         fclose(md-&gt;debug);</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         md-&gt;debug = NULL;</span>
+<span class="lineNum">     513 </span>            :     }
+<span class="lineNum">     514 </span>            :   #ifdef HAVE_U64_TYPEDEF
+<span class="lineNum">     515 </span>            :     {  /* a kludge to pull in the __muldi3 for Solaris */
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :        volatile u32 a = (u32)(ulong)md;</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :        volatile u64 b = 42;</span>
+<span class="lineNum">     518 </span>            :        volatile u64 c;
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :        c = a * b;</span>
+<span class="lineNum">     520 </span>            :     }
+<span class="lineNum">     521 </span>            :   #endif
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     523 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

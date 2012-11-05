@@ -1,0 +1,522 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - mpi/mpicoder.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">mpi</a> - mpicoder.c<span style="font-size: 80%;"> (source / <a href="mpicoder.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">203</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* mpicoder.c  -  Coder for the external representation of MPIs</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;mpi-internal.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;iobuf.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;memory.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #ifdef M_DEBUG
+<span class="lineNum">      34 </span>            :   #undef mpi_read
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #define MAX_EXTERN_MPI_BITS 16384
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /****************
+<span class="lineNum">      40 </span>            :  * write an mpi to out.
+<a name="41"><span class="lineNum">      41 </span>            :  */</a>
+<span class="lineNum">      42 </span>            : int
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 : mpi_write( IOBUF out, MPI a )</span>
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span>            :     int rc;
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     unsigned nbits = mpi_get_nbits(a);</span>
+<span class="lineNum">      47 </span>            :     byte *p, *buf;
+<span class="lineNum">      48 </span>            :     unsigned n;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     if( nbits &gt; MAX_EXTERN_MPI_BITS )</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :         log_bug(&quot;mpi_encode: mpi too large (%u bits)\n&quot;, nbits);</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     iobuf_put(out, (nbits &gt;&gt;8) );</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     iobuf_put(out, (nbits) );</span>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     p = buf = mpi_get_buffer( a, &amp;n, NULL );</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     rc = iobuf_write( out, p, n );</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     m_free(buf);</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">      60 </span>            : }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : /****************
+<span class="lineNum">      64 </span>            :  * Read an external representation of an mpi and return the MPI
+<span class="lineNum">      65 </span>            :  * The external format is a 16 bit unsigned value stored in network byte order,
+<span class="lineNum">      66 </span>            :  * giving the number of bits for the following integer. The integer is stored
+<span class="lineNum">      67 </span>            :  * with MSB first (left padded with zeroes to align on a byte boundary).
+<span class="lineNum">      68 </span>            :  */
+<span class="lineNum">      69 </span>            : MPI
+<span class="lineNum">      70 </span>            : #ifdef M_DEBUG
+<a name="71"><span class="lineNum">      71 </span>            : mpi_debug_read(IOBUF inp, unsigned *ret_nread, int secure, const char *info)</a>
+<span class="lineNum">      72 </span>            : #else
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : mpi_read(IOBUF inp, unsigned *ret_nread, int secure)</span>
+<span class="lineNum">      74 </span>            : #endif
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span>            :     int c, i, j;
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     unsigned nbits, nbytes, nlimbs, nread=0;</span>
+<span class="lineNum">      78 </span>            :     mpi_limb_t a;
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     MPI val = MPI_NULL;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     if( (c = iobuf_get(inp)) == -1 )</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         goto leave;</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     nbits = c &lt;&lt; 8;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     if( (c = iobuf_get(inp)) == -1 )</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         goto leave;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     nbits |= c;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     if( nbits &gt; MAX_EXTERN_MPI_BITS ) {</span>
+<span class="lineNum">      88 </span>            :         log_error(&quot;mpi too large (%u bits)\n&quot;, nbits);
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         goto leave;</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     nread = 2;</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     nbytes = (nbits+7) / 8;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">      95 </span>            :   #ifdef M_DEBUG
+<span class="lineNum">      96 </span>            :     val = secure? mpi_debug_alloc_secure( nlimbs, info )
+<span class="lineNum">      97 </span>            :                 : mpi_debug_alloc( nlimbs, info );
+<span class="lineNum">      98 </span>            :   #else
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     val = secure? mpi_alloc_secure( nlimbs )</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :                 : mpi_alloc( nlimbs );</span>
+<span class="lineNum">     101 </span>            :   #endif
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     i %= BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     val-&gt;nbits = nbits;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     j= val-&gt;nlimbs = nlimbs;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     val-&gt;sign = 0;</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     for( ; j &gt; 0; j-- ) {</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         a = 0;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         for(; i &lt; BYTES_PER_MPI_LIMB; i++ ) {</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :             a &lt;&lt;= 8;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :             a |= iobuf_get(inp) &amp; 0xff; nread++;</span>
+<span class="lineNum">     112 </span>            :         }
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         i = 0;</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         val-&gt;d[j-1] = a;</span>
+<span class="lineNum">     115 </span>            :     }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :   leave:
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if( nread &gt; *ret_nread )</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         log_bug(&quot;mpi crosses packet border&quot;);</span>
+<span class="lineNum">     120 </span>            :     else
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         *ret_nread = nread;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     return val;</span>
+<span class="lineNum">     123 </span>            : }
+<span class="lineNum">     124 </span>            : 
+<a name="125"><span class="lineNum">     125 </span>            : </a>
+<span class="lineNum">     126 </span>            : MPI
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 : mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)</span>
+<span class="lineNum">     128 </span>            : {
+<span class="lineNum">     129 </span>            :     int i, j;
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     unsigned nbits, nbytes, nlimbs, nread=0;</span>
+<span class="lineNum">     131 </span>            :     mpi_limb_t a;
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     MPI val = MPI_NULL;</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     if( *ret_nread &lt; 2 )</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         goto leave;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     nbits = buffer[0] &lt;&lt; 8 | buffer[1];</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     if( nbits &gt; MAX_EXTERN_MPI_BITS ) {</span>
+<span class="lineNum">     138 </span>            :         log_error(&quot;mpi too large (%u bits)\n&quot;, nbits);
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         goto leave;</span>
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     buffer += 2;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     nread = 2;</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     nbytes = (nbits+7) / 8;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     val = secure? mpi_alloc_secure( nlimbs )</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                 : mpi_alloc( nlimbs );</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     i %= BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     val-&gt;nbits = nbits;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     j= val-&gt;nlimbs = nlimbs;</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     val-&gt;sign = 0;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     for( ; j &gt; 0; j-- ) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         a = 0;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         for(; i &lt; BYTES_PER_MPI_LIMB; i++ ) {</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             if( ++nread &gt; *ret_nread )</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                 log_bug(&quot;mpi larger than buffer&quot;);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             a &lt;&lt;= 8;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             a |= *buffer++;</span>
+<span class="lineNum">     160 </span>            :         }
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         i = 0;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         val-&gt;d[j-1] = a;</span>
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            :   leave:
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     *ret_nread = nread;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     return val;</span>
+<span class="lineNum">     168 </span>            : }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : /****************
+<span class="lineNum">     172 </span>            :  * Make an mpi from a character string.
+<a name="173"><span class="lineNum">     173 </span>            :  */</a>
+<span class="lineNum">     174 </span>            : int
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 : mpi_fromstr(MPI val, const char *str)</span>
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     int hexmode=0, sign=0, prepend_zero=0, i, j, c, c1, c2;</span>
+<span class="lineNum">     178 </span>            :     unsigned nbits, nbytes, nlimbs;
+<span class="lineNum">     179 </span>            :     mpi_limb_t a;
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     if( *str == '-' ) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         sign = 1;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         str++;</span>
+<span class="lineNum">     184 </span>            :     }
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     if( *str == '0' &amp;&amp; str[1] == 'x' )</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         hexmode = 1;</span>
+<span class="lineNum">     187 </span>            :     else
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         return 1; /* other bases are not yet supported */</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     str += 2;</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     nbits = strlen(str)*4;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     if( nbits % 8 )</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         prepend_zero = 1;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     nbytes = (nbits+7) / 8;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     if( val-&gt;alloced &lt; nlimbs )</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         mpi_resize(val, nlimbs );</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     i %= BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     j= val-&gt;nlimbs = nlimbs;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     val-&gt;sign = sign;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     for( ; j &gt; 0; j-- ) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         a = 0;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         for(; i &lt; BYTES_PER_MPI_LIMB; i++ ) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             if( prepend_zero ) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 c1 = '0';</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 prepend_zero = 0;</span>
+<span class="lineNum">     208 </span>            :             }
+<span class="lineNum">     209 </span>            :             else
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :                 c1 = *str++;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             assert(c1);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             c2 = *str++;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :             assert(c2);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             if( c1 &gt;= '0' &amp;&amp; c1 &lt;= '9' )</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                 c = c1 - '0';</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             else if( c1 &gt;= 'a' &amp;&amp; c1 &lt;= 'f' )</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                 c = c1 - 'a' + 10;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :             else if( c1 &gt;= 'A' &amp;&amp; c1 &lt;= 'F' )</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :                 c = c1 - 'A' + 10;</span>
+<span class="lineNum">     220 </span>            :             else {
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                 mpi_clear(val);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                 return 1;</span>
+<span class="lineNum">     223 </span>            :             }
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             c &lt;&lt;= 4;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             if( c2 &gt;= '0' &amp;&amp; c2 &lt;= '9' )</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 c |= c2 - '0';</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             else if( c2 &gt;= 'a' &amp;&amp; c2 &lt;= 'f' )</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                 c |= c2 - 'a' + 10;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :             else if( c2 &gt;= 'A' &amp;&amp; c2 &lt;= 'F' )</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                 c |= c2 - 'A' + 10;</span>
+<span class="lineNum">     231 </span>            :             else {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                 mpi_clear(val);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 return 1;</span>
+<span class="lineNum">     234 </span>            :             }
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             a &lt;&lt;= 8;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             a |= c;</span>
+<span class="lineNum">     237 </span>            :         }
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         i = 0;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         val-&gt;d[j-1] = a;</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     243 </span>            : }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : /****************
+<span class="lineNum">     247 </span>            :  * print an MPI to the given stream and return the number of characters
+<span class="lineNum">     248 </span>            :  * printed.
+<a name="249"><span class="lineNum">     249 </span>            :  */</a>
+<span class="lineNum">     250 </span>            : int
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 : mpi_print( FILE *fp, MPI a, int mode )</span>
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     int i, n=0;</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     if( a == MPI_NULL )</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return fprintf(fp, &quot;[MPI_NULL]&quot;);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     if( !mode ) {</span>
+<span class="lineNum">     258 </span>            :         unsigned n1, n2;
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         n1 = mpi_get_nbits(a);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         n2 = mpi_get_nbit_info(a);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         if( n2 &amp;&amp; n2 != n1 )</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             n += fprintf(fp, &quot;[%u bits (%u)]&quot;, n1, n2 );</span>
+<span class="lineNum">     263 </span>            :         else
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             n += fprintf(fp, &quot;[%u bits]&quot;, n1);</span>
+<span class="lineNum">     265 </span>            :     }
+<span class="lineNum">     266 </span>            :     else {
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         if( a-&gt;sign )</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             putc('-', fp);</span>
+<span class="lineNum">     269 </span>            :        #if BYTES_PER_MPI_LIMB == 2
+<span class="lineNum">     270 </span>            :           #define X &quot;4&quot;
+<span class="lineNum">     271 </span>            :        #elif BYTES_PER_MPI_LIMB == 4
+<span class="lineNum">     272 </span>            :           #define X &quot;8&quot;
+<span class="lineNum">     273 </span>            :        #elif BYTES_PER_MPI_LIMB == 8
+<span class="lineNum">     274 </span>            :           #define X &quot;16&quot;
+<span class="lineNum">     275 </span>            :        #else
+<span class="lineNum">     276 </span>            :           #error please define the format here
+<span class="lineNum">     277 </span>            :        #endif
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         for(i=a-&gt;nlimbs; i &gt; 0 ; i-- ) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             n += fprintf(fp, i!=a-&gt;nlimbs? &quot;%0&quot; X &quot;lX&quot;:&quot;%lX&quot;, (ulong)a-&gt;d[i-1]);</span>
+<span class="lineNum">     280 </span>            :        #undef X
+<span class="lineNum">     281 </span>            :         }
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         if( !a-&gt;nlimbs )</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             putc('0', fp );</span>
+<span class="lineNum">     284 </span>            :     }
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     return n;</span>
+<span class="lineNum">     286 </span>            : }
+<span class="lineNum">     287 </span>            : 
+<a name="288"><span class="lineNum">     288 </span>            : </a>
+<span class="lineNum">     289 </span>            : void
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 : g10_log_mpidump( const char *text, MPI a )</span>
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     FILE *fp = log_stream();</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     g10_log_print_prefix(text);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     mpi_print(fp, a, 1 );</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     fputc('\n', fp);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            : /****************
+<span class="lineNum">     300 </span>            :  * Special function to get the low 8 bytes from an mpi.
+<span class="lineNum">     301 </span>            :  * This can be used as a keyid; KEYID is an 2 element array.
+<span class="lineNum">     302 </span>            :  * Return the low 4 bytes.
+<a name="303"><span class="lineNum">     303 </span>            :  */</a>
+<span class="lineNum">     304 </span>            : u32
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 : mpi_get_keyid( MPI a, u32 *keyid )</span>
+<span class="lineNum">     306 </span>            : {
+<span class="lineNum">     307 </span>            : #if BYTES_PER_MPI_LIMB == 4
+<span class="lineNum">     308 </span>            :     if( keyid ) {
+<span class="lineNum">     309 </span>            :         keyid[0] = a-&gt;nlimbs &gt;= 2? a-&gt;d[1] : 0;
+<span class="lineNum">     310 </span>            :         keyid[1] = a-&gt;nlimbs &gt;= 1? a-&gt;d[0] : 0;
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span>            :     return a-&gt;nlimbs &gt;= 1? a-&gt;d[0] : 0;
+<span class="lineNum">     313 </span>            : #elif BYTES_PER_MPI_LIMB == 8
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     if( keyid ) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         keyid[0] = a-&gt;nlimbs? (u32)(a-&gt;d[0] &gt;&gt; 32) : 0;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         keyid[1] = a-&gt;nlimbs? (u32)(a-&gt;d[0] &amp; 0xffffffff) : 0;</span>
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     return a-&gt;nlimbs? (u32)(a-&gt;d[0] &amp; 0xffffffff) : 0;</span>
+<span class="lineNum">     319 </span>            : #else
+<span class="lineNum">     320 </span>            :   #error Make this function work with other LIMB sizes
+<span class="lineNum">     321 </span>            : #endif
+<span class="lineNum">     322 </span>            : }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : /****************
+<span class="lineNum">     326 </span>            :  * Return an m_alloced buffer with the MPI (msb first).
+<span class="lineNum">     327 </span>            :  * NBYTES receives the length of this buffer. Caller must free the
+<span class="lineNum">     328 </span>            :  * return string (This function does return a 0 byte buffer with NBYTES
+<span class="lineNum">     329 </span>            :  * set to zero if the value of A is zero. If sign is not NULL, it will
+<span class="lineNum">     330 </span>            :  * be set to the sign of the A.
+<a name="331"><span class="lineNum">     331 </span>            :  */</a>
+<span class="lineNum">     332 </span>            : static byte *
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 : do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )</span>
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :     byte *p, *buffer;
+<span class="lineNum">     336 </span>            :     mpi_limb_t alimb;
+<span class="lineNum">     337 </span>            :     int i;
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     if( sign )</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         *sign = a-&gt;sign;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     *nbytes = a-&gt;nlimbs * BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     p = buffer = force_secure || mpi_is_secure(a) ? m_alloc_secure( *nbytes)</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                                                   : m_alloc( *nbytes );</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     for(i=a-&gt;nlimbs-1; i &gt;= 0; i-- ) {</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         alimb = a-&gt;d[i];</span>
+<span class="lineNum">     347 </span>            :       #if BYTES_PER_MPI_LIMB == 4
+<span class="lineNum">     348 </span>            :         *p++ = alimb &gt;&gt; 24;
+<span class="lineNum">     349 </span>            :         *p++ = alimb &gt;&gt; 16;
+<span class="lineNum">     350 </span>            :         *p++ = alimb &gt;&gt;  8;
+<span class="lineNum">     351 </span>            :         *p++ = alimb      ;
+<span class="lineNum">     352 </span>            :       #elif BYTES_PER_MPI_LIMB == 8
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 56;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 48;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 40;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 32;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 24;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt; 16;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         *p++ = alimb &gt;&gt;  8;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         *p++ = alimb      ;</span>
+<span class="lineNum">     361 </span>            :       #else
+<span class="lineNum">     362 </span>            :         #error please implement for this limb size.
+<span class="lineNum">     363 </span>            :       #endif
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :     /* this is sub-optimal but we need to do the shift oepration because
+<span class="lineNum">     367 </span>            :      * the caller has to free the returned buffer */
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     for(p=buffer; !*p &amp;&amp; *nbytes; p++, --*nbytes )</span>
+<span class="lineNum">     369 </span>            :         ;
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     if( p != buffer )</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         memmove(buffer,p, *nbytes);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     return buffer;</span>
+<span class="lineNum">     373 </span>            : }
+<span class="lineNum">     374 </span>            : 
+<a name="375"><span class="lineNum">     375 </span>            : </a>
+<span class="lineNum">     376 </span>            : byte *
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 : mpi_get_buffer( MPI a, unsigned *nbytes, int *sign )</span>
+<span class="lineNum">     378 </span>            : {
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     return do_get_buffer( a, nbytes, sign, 0 );</span>
+<span class="lineNum">     380 </span>            : }
+<a name="381"><span class="lineNum">     381 </span>            : </a>
+<span class="lineNum">     382 </span>            : byte *
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 : mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )</span>
+<span class="lineNum">     384 </span>            : {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     return do_get_buffer( a, nbytes, sign, 1 );</span>
+<span class="lineNum">     386 </span>            : }
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            : /****************
+<span class="lineNum">     389 </span>            :  * Use BUFFER to update MPI.
+<a name="390"><span class="lineNum">     390 </span>            :  */</a>
+<span class="lineNum">     391 </span>            : void
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 : mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign )</span>
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span>            :     const byte *p;
+<span class="lineNum">     395 </span>            :     mpi_limb_t alimb;
+<span class="lineNum">     396 </span>            :     int nlimbs;
+<span class="lineNum">     397 </span>            :     int i;
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     nlimbs = (nbytes + BYTES_PER_MPI_LIMB - 1) / BYTES_PER_MPI_LIMB;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     RESIZE_IF_NEEDED(a, nlimbs);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     a-&gt;sign = sign;</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     for(i=0, p = buffer+nbytes-1; p &gt;= buffer+BYTES_PER_MPI_LIMB; ) {</span>
+<span class="lineNum">     404 </span>            :       #if BYTES_PER_MPI_LIMB == 4
+<span class="lineNum">     405 </span>            :         alimb  = *p--       ;
+<span class="lineNum">     406 </span>            :         alimb |= *p-- &lt;&lt;  8 ;
+<span class="lineNum">     407 </span>            :         alimb |= *p-- &lt;&lt; 16 ;
+<span class="lineNum">     408 </span>            :         alimb |= *p-- &lt;&lt; 24 ;
+<span class="lineNum">     409 </span>            :       #elif BYTES_PER_MPI_LIMB == 8
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         alimb  = (mpi_limb_t)*p--       ;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt;  8 ;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 16 ;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 24 ;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 32 ;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 40 ;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 48 ;</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         alimb |= (mpi_limb_t)*p-- &lt;&lt; 56 ;</span>
+<span class="lineNum">     418 </span>            :       #else
+<span class="lineNum">     419 </span>            :         #error please implement for this limb size.
+<span class="lineNum">     420 </span>            :       #endif
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         a-&gt;d[i++] = alimb;</span>
+<span class="lineNum">     422 </span>            :     }
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     if( p &gt;= buffer ) {</span>
+<span class="lineNum">     424 </span>            :       #if BYTES_PER_MPI_LIMB == 4
+<span class="lineNum">     425 </span>            :         alimb  = *p--       ;
+<span class="lineNum">     426 </span>            :         if( p &gt;= buffer ) alimb |= *p-- &lt;&lt;  8 ;
+<span class="lineNum">     427 </span>            :         if( p &gt;= buffer ) alimb |= *p-- &lt;&lt; 16 ;
+<span class="lineNum">     428 </span>            :         if( p &gt;= buffer ) alimb |= *p-- &lt;&lt; 24 ;
+<span class="lineNum">     429 </span>            :       #elif BYTES_PER_MPI_LIMB == 8
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         alimb  = (mpi_limb_t)*p-- ;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 8 ;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 16 ;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 24 ;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 32 ;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 40 ;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 48 ;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :         if( p &gt;= buffer ) alimb |= (mpi_limb_t)*p-- &lt;&lt; 56 ;</span>
+<span class="lineNum">     438 </span>            :       #else
+<span class="lineNum">     439 </span>            :         #error please implement for this limb size.
+<span class="lineNum">     440 </span>            :       #endif
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         a-&gt;d[i++] = alimb;</span>
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     a-&gt;nlimbs = i;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     assert( i == nlimbs );</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     446 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

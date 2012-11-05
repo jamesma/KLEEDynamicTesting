@@ -1,0 +1,346 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - mpi/mpi-inv.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">mpi</a> - mpi-inv.c<span style="font-size: 80%;"> (source / <a href="mpi-inv.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">75</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* mpi-inv.c  -  MPI functions</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &quot;mpi-internal.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /****************
+<span class="lineNum">      28 </span>            :  * Calculate the multiplicative inverse X of A mod N
+<span class="lineNum">      29 </span>            :  * That is: Find the solution x for
+<span class="lineNum">      30 </span>            :  *              1 = (a*x) mod n
+<a name="31"><span class="lineNum">      31 </span>            :  */</a>
+<span class="lineNum">      32 </span>            : void
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 : mpi_invm( MPI x, MPI a, MPI n )</span>
+<span class="lineNum">      34 </span>            : {
+<span class="lineNum">      35 </span>            :   #if 0
+<span class="lineNum">      36 </span>            :     MPI u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
+<span class="lineNum">      37 </span>            :     MPI ta, tb, tc;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            :     u = mpi_copy(a);
+<span class="lineNum">      40 </span>            :     v = mpi_copy(n);
+<span class="lineNum">      41 </span>            :     u1 = mpi_alloc_set_ui(1);
+<span class="lineNum">      42 </span>            :     u2 = mpi_alloc_set_ui(0);
+<span class="lineNum">      43 </span>            :     u3 = mpi_copy(u);
+<span class="lineNum">      44 </span>            :     v1 = mpi_alloc_set_ui(0);
+<span class="lineNum">      45 </span>            :     v2 = mpi_alloc_set_ui(1);
+<span class="lineNum">      46 </span>            :     v3 = mpi_copy(v);
+<span class="lineNum">      47 </span>            :     q  = mpi_alloc( mpi_get_nlimbs(u)+1 );
+<span class="lineNum">      48 </span>            :     t1 = mpi_alloc( mpi_get_nlimbs(u)+1 );
+<span class="lineNum">      49 </span>            :     t2 = mpi_alloc( mpi_get_nlimbs(u)+1 );
+<span class="lineNum">      50 </span>            :     t3 = mpi_alloc( mpi_get_nlimbs(u)+1 );
+<span class="lineNum">      51 </span>            :     while( mpi_cmp_ui( v3, 0 ) ) {
+<span class="lineNum">      52 </span>            :         mpi_fdiv_q( q, u3, v3 );
+<span class="lineNum">      53 </span>            :         mpi_mul(t1, v1, q); mpi_mul(t2, v2, q); mpi_mul(t3, v3, q);
+<span class="lineNum">      54 </span>            :         mpi_sub(t1, u1, t1); mpi_sub(t2, u2, t2); mpi_sub(t3, u3, t3);
+<span class="lineNum">      55 </span>            :         mpi_set(u1, v1); mpi_set(u2, v2); mpi_set(u3, v3);
+<span class="lineNum">      56 </span>            :         mpi_set(v1, t1); mpi_set(v2, t2); mpi_set(v3, t3);
+<span class="lineNum">      57 </span>            :     }
+<span class="lineNum">      58 </span>            :     /*  log_debug(&quot;result:\n&quot;);
+<span class="lineNum">      59 </span>            :         log_mpidump(&quot;q =&quot;, q );
+<span class="lineNum">      60 </span>            :         log_mpidump(&quot;u1=&quot;, u1);
+<span class="lineNum">      61 </span>            :         log_mpidump(&quot;u2=&quot;, u2);
+<span class="lineNum">      62 </span>            :         log_mpidump(&quot;u3=&quot;, u3);
+<span class="lineNum">      63 </span>            :         log_mpidump(&quot;v1=&quot;, v1);
+<span class="lineNum">      64 </span>            :         log_mpidump(&quot;v2=&quot;, v2); */
+<span class="lineNum">      65 </span>            :     mpi_set(x, u1);
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            :     mpi_free(u1);
+<span class="lineNum">      68 </span>            :     mpi_free(u2);
+<span class="lineNum">      69 </span>            :     mpi_free(u3);
+<span class="lineNum">      70 </span>            :     mpi_free(v1);
+<span class="lineNum">      71 </span>            :     mpi_free(v2);
+<span class="lineNum">      72 </span>            :     mpi_free(v3);
+<span class="lineNum">      73 </span>            :     mpi_free(q);
+<span class="lineNum">      74 </span>            :     mpi_free(t1);
+<span class="lineNum">      75 </span>            :     mpi_free(t2);
+<span class="lineNum">      76 </span>            :     mpi_free(t3);
+<span class="lineNum">      77 </span>            :     mpi_free(u);
+<span class="lineNum">      78 </span>            :     mpi_free(v);
+<span class="lineNum">      79 </span>            :   #elif 0
+<span class="lineNum">      80 </span>            :     /* Extended Euclid's algorithm (See TAOPC Vol II, 4.5.2, Alg X)
+<span class="lineNum">      81 </span>            :      * modified according to Michael Penk's solution for Exercice 35 */
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :     /* FIXME: we can simplify this in most cases (see Knuth) */
+<span class="lineNum">      84 </span>            :     MPI u, v, u1, u2, u3, v1, v2, v3, t1, t2, t3;
+<span class="lineNum">      85 </span>            :     unsigned k;
+<span class="lineNum">      86 </span>            :     int sign;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     u = mpi_copy(a);
+<span class="lineNum">      89 </span>            :     v = mpi_copy(n);
+<span class="lineNum">      90 </span>            :     for(k=0; !mpi_test_bit(u,0) &amp;&amp; !mpi_test_bit(v,0); k++ ) {
+<span class="lineNum">      91 </span>            :         mpi_rshift(u, u, 1);
+<span class="lineNum">      92 </span>            :         mpi_rshift(v, v, 1);
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     u1 = mpi_alloc_set_ui(1);
+<span class="lineNum">      97 </span>            :     u2 = mpi_alloc_set_ui(0);
+<span class="lineNum">      98 </span>            :     u3 = mpi_copy(u);
+<span class="lineNum">      99 </span>            :     v1 = mpi_copy(v);                              /* !-- used as const 1 */
+<span class="lineNum">     100 </span>            :     v2 = mpi_alloc( mpi_get_nlimbs(u) ); mpi_sub( v2, u1, u );
+<span class="lineNum">     101 </span>            :     v3 = mpi_copy(v);
+<span class="lineNum">     102 </span>            :     if( mpi_test_bit(u, 0) ) { /* u is odd */
+<span class="lineNum">     103 </span>            :         t1 = mpi_alloc_set_ui(0);
+<span class="lineNum">     104 </span>            :         t2 = mpi_alloc_set_ui(1); t2-&gt;sign = 1;
+<span class="lineNum">     105 </span>            :         t3 = mpi_copy(v); t3-&gt;sign = !t3-&gt;sign;
+<span class="lineNum">     106 </span>            :         goto Y4;
+<span class="lineNum">     107 </span>            :     }
+<span class="lineNum">     108 </span>            :     else {
+<span class="lineNum">     109 </span>            :         t1 = mpi_alloc_set_ui(1);
+<span class="lineNum">     110 </span>            :         t2 = mpi_alloc_set_ui(0);
+<span class="lineNum">     111 </span>            :         t3 = mpi_copy(u);
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            :     do {
+<span class="lineNum">     114 </span>            :         do {
+<span class="lineNum">     115 </span>            :             if( mpi_test_bit(t1, 0) || mpi_test_bit(t2, 0) ) { /* one is odd */
+<span class="lineNum">     116 </span>            :                 mpi_add(t1, t1, v);
+<span class="lineNum">     117 </span>            :                 mpi_sub(t2, t2, u);
+<span class="lineNum">     118 </span>            :             }
+<span class="lineNum">     119 </span>            :             mpi_rshift(t1, t1, 1);
+<span class="lineNum">     120 </span>            :             mpi_rshift(t2, t2, 1);
+<span class="lineNum">     121 </span>            :             mpi_rshift(t3, t3, 1);
+<span class="lineNum">     122 </span>            :           Y4:
+<span class="lineNum">     123 </span>            :             ;
+<span class="lineNum">     124 </span>            :         } while( !mpi_test_bit( t3, 0 ) ); /* while t3 is even */
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :         if( !t3-&gt;sign ) {
+<span class="lineNum">     127 </span>            :             mpi_set(u1, t1);
+<span class="lineNum">     128 </span>            :             mpi_set(u2, t2);
+<span class="lineNum">     129 </span>            :             mpi_set(u3, t3);
+<span class="lineNum">     130 </span>            :         }
+<span class="lineNum">     131 </span>            :         else {
+<span class="lineNum">     132 </span>            :             mpi_sub(v1, v, t1);
+<span class="lineNum">     133 </span>            :             sign = u-&gt;sign; u-&gt;sign = !u-&gt;sign;
+<span class="lineNum">     134 </span>            :             mpi_sub(v2, u, t2);
+<span class="lineNum">     135 </span>            :             u-&gt;sign = sign;
+<span class="lineNum">     136 </span>            :             sign = t3-&gt;sign; t3-&gt;sign = !t3-&gt;sign;
+<span class="lineNum">     137 </span>            :             mpi_set(v3, t3);
+<span class="lineNum">     138 </span>            :             t3-&gt;sign = sign;
+<span class="lineNum">     139 </span>            :         }
+<span class="lineNum">     140 </span>            :         mpi_sub(t1, u1, v1);
+<span class="lineNum">     141 </span>            :         mpi_sub(t2, u2, v2);
+<span class="lineNum">     142 </span>            :         mpi_sub(t3, u3, v3);
+<span class="lineNum">     143 </span>            :         if( t1-&gt;sign ) {
+<span class="lineNum">     144 </span>            :             mpi_add(t1, t1, v);
+<span class="lineNum">     145 </span>            :             mpi_sub(t2, t2, u);
+<span class="lineNum">     146 </span>            :         }
+<span class="lineNum">     147 </span>            :     } while( mpi_cmp_ui( t3, 0 ) ); /* while t3 != 0 */
+<span class="lineNum">     148 </span>            :     /* mpi_lshift( u3, k ); */
+<span class="lineNum">     149 </span>            :     mpi_set(x, u1);
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :     mpi_free(u1);
+<span class="lineNum">     152 </span>            :     mpi_free(u2);
+<span class="lineNum">     153 </span>            :     mpi_free(u3);
+<span class="lineNum">     154 </span>            :     mpi_free(v1);
+<span class="lineNum">     155 </span>            :     mpi_free(v2);
+<span class="lineNum">     156 </span>            :     mpi_free(v3);
+<span class="lineNum">     157 </span>            :     mpi_free(t1);
+<span class="lineNum">     158 </span>            :     mpi_free(t2);
+<span class="lineNum">     159 </span>            :     mpi_free(t3);
+<span class="lineNum">     160 </span>            :   #else
+<span class="lineNum">     161 </span>            :     /* Extended Euclid's algorithm (See TAOPC Vol II, 4.5.2, Alg X)
+<span class="lineNum">     162 </span>            :      * modified according to Michael Penk's solution for Exercice 35
+<span class="lineNum">     163 </span>            :      * with further enhancement */
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     MPI u, v, u1, u2=NULL, u3, v1, v2=NULL, v3, t1, t2=NULL, t3;</span>
+<span class="lineNum">     165 </span>            :     unsigned k;
+<span class="lineNum">     166 </span>            :     int sign;
+<span class="lineNum">     167 </span>            :     int odd ;
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     u = mpi_copy(a);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     v = mpi_copy(n);</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     for(k=0; !mpi_test_bit(u,0) &amp;&amp; !mpi_test_bit(v,0); k++ ) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         mpi_rshift(u, u, 1);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         mpi_rshift(v, v, 1);</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     odd = mpi_test_bit(v,0);</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     u1 = mpi_alloc_set_ui(1);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     if( !odd )</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         u2 = mpi_alloc_set_ui(0);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     u3 = mpi_copy(u);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     v1 = mpi_copy(v);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     if( !odd ) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         v2 = mpi_alloc( mpi_get_nlimbs(u) );</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         mpi_sub( v2, u1, u ); /* U is used as const 1 */</span>
+<span class="lineNum">     186 </span>            :     }
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     v3 = mpi_copy(v);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     if( mpi_test_bit(u, 0) ) { /* u is odd */</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         t1 = mpi_alloc_set_ui(0);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         if( !odd ) {</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             t2 = mpi_alloc_set_ui(1); t2-&gt;sign = 1;</span>
+<span class="lineNum">     192 </span>            :         }
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         t3 = mpi_copy(v); t3-&gt;sign = !t3-&gt;sign;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         goto Y4;</span>
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            :     else {
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         t1 = mpi_alloc_set_ui(1);</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if( !odd )</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             t2 = mpi_alloc_set_ui(0);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         t3 = mpi_copy(u);</span>
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span>            :     do {
+<span class="lineNum">     203 </span>            :         do {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             if( !odd ) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 if( mpi_test_bit(t1, 0) || mpi_test_bit(t2, 0) ) { /* one is odd */</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                     mpi_add(t1, t1, v);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                     mpi_sub(t2, t2, u);</span>
+<span class="lineNum">     208 </span>            :                 }
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                 mpi_rshift(t1, t1, 1);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :                 mpi_rshift(t2, t2, 1);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                 mpi_rshift(t3, t3, 1);</span>
+<span class="lineNum">     212 </span>            :             }
+<span class="lineNum">     213 </span>            :             else {
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                 if( mpi_test_bit(t1, 0) )</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                     mpi_add(t1, t1, v);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                 mpi_rshift(t1, t1, 1);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                 mpi_rshift(t3, t3, 1);</span>
+<span class="lineNum">     218 </span>            :             }
+<span class="lineNum">     219 </span>            :           Y4:
+<span class="lineNum">     220 </span>            :             ;
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         } while( !mpi_test_bit( t3, 0 ) ); /* while t3 is even */</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         if( !t3-&gt;sign ) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             mpi_set(u1, t1);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             if( !odd )</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 mpi_set(u2, t2);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             mpi_set(u3, t3);</span>
+<span class="lineNum">     228 </span>            :         }
+<span class="lineNum">     229 </span>            :         else {
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             mpi_sub(v1, v, t1);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             sign = u-&gt;sign; u-&gt;sign = !u-&gt;sign;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             if( !odd )</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 mpi_sub(v2, u, t2);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             u-&gt;sign = sign;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             sign = t3-&gt;sign; t3-&gt;sign = !t3-&gt;sign;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             mpi_set(v3, t3);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             t3-&gt;sign = sign;</span>
+<span class="lineNum">     238 </span>            :         }
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         mpi_sub(t1, u1, v1);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         if( !odd )</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :             mpi_sub(t2, u2, v2);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         mpi_sub(t3, u3, v3);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if( t1-&gt;sign ) {</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             mpi_add(t1, t1, v);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             if( !odd )</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 mpi_sub(t2, t2, u);</span>
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     } while( mpi_cmp_ui( t3, 0 ) ); /* while t3 != 0 */</span>
+<span class="lineNum">     249 </span>            :     /* mpi_lshift( u3, k ); */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     mpi_set(x, u1);</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     mpi_free(u1);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     mpi_free(v1);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     mpi_free(t1);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     if( !odd ) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         mpi_free(u2);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         mpi_free(v2);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         mpi_free(t2);</span>
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     mpi_free(u3);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     mpi_free(v3);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     mpi_free(t3);</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     mpi_free(u);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     mpi_free(v);</span>
+<span class="lineNum">     266 </span>            :   #endif
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

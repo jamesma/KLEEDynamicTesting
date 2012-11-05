@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - build_gcov/mpi/mpih-lshift.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">build_gcov/mpi</a> - mpih-lshift.c<span style="font-size: 80%;"> (source / <a href="mpih-lshift.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* mpihelp-lshift.c  -  MPI helper functions</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 1994, 1996, 1998, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Note: This code is heavily based on the GNU MP Library.
+<span class="lineNum">      21 </span>            :  *       Actually it's the same code with only minor changes in the
+<span class="lineNum">      22 </span>            :  *       way the data is stored; this is to support the abstraction
+<span class="lineNum">      23 </span>            :  *       of an optional secure memory allocation which may be used
+<span class="lineNum">      24 </span>            :  *       to avoid revealing of sensitive data due to paging etc.
+<span class="lineNum">      25 </span>            :  *       The GNU MP Library itself is published under the LGPL;
+<span class="lineNum">      26 </span>            :  *       however I decided to publish this code under the plain GPL.
+<span class="lineNum">      27 </span>            :  */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      32 </span>            : #include &quot;mpi-internal.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /* Shift U (pointed to by UP and USIZE digits long) CNT bits to the left
+<span class="lineNum">      35 </span>            :  * and store the USIZE least significant digits of the result at WP.
+<span class="lineNum">      36 </span>            :  * Return the bits shifted out from the most significant digit.
+<span class="lineNum">      37 </span>            :  *
+<span class="lineNum">      38 </span>            :  * Argument constraints:
+<span class="lineNum">      39 </span>            :  * 1. 0 &lt; CNT &lt; BITS_PER_MP_LIMB
+<span class="lineNum">      40 </span>            :  * 2. If the result is to be written over the input, WP must be &gt;= UP.
+<span class="lineNum">      41 </span>            :  */
+<a name="42"><span class="lineNum">      42 </span>            : </a>
+<span class="lineNum">      43 </span>            : mpi_limb_t
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 : mpihelp_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,</span>
+<span class="lineNum">      45 </span>            :                                             unsigned int cnt)
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span>            :     mpi_limb_t high_limb, low_limb;
+<span class="lineNum">      48 </span>            :     unsigned sh_1, sh_2;
+<span class="lineNum">      49 </span>            :     mpi_size_t i;
+<span class="lineNum">      50 </span>            :     mpi_limb_t retval;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     sh_1 = cnt;</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     wp += 1;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     sh_2 = BITS_PER_MPI_LIMB - sh_1;</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     i = usize - 1;</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     low_limb = up[i];</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     retval = low_limb &gt;&gt; sh_2;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     high_limb = low_limb;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     while( --i &gt;= 0 ) {</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         low_limb = up[i];</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         wp[i] = (high_limb &lt;&lt; sh_1) | (low_limb &gt;&gt; sh_2);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         high_limb = low_limb;</span>
+<span class="lineNum">      63 </span>            :     }
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     wp[i] = high_limb &lt;&lt; sh_1;</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     return retval;</span>
+<span class="lineNum">      67 </span>            : }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

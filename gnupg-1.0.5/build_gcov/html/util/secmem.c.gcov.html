@@ -1,0 +1,517 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - util/secmem.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">util</a> - secmem.c<span style="font-size: 80%;"> (source / <a href="secmem.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntry">138</td>
+            <td class="headerCovTableEntryLo">37.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">53.8 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* secmem.c  -  memory allocation from a secure heap</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1998, 1999, 2000 Free Software Foundation, Inc.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       8 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       9 </span>            :  * (at your option) any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;stdarg.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      28 </span>            : #if defined(HAVE_MLOCK) || defined(HAVE_MMAP)
+<span class="lineNum">      29 </span>            :   #include &lt;sys/mman.h&gt;
+<span class="lineNum">      30 </span>            :   #include &lt;sys/types.h&gt;
+<span class="lineNum">      31 </span>            :   #include &lt;fcntl.h&gt;
+<span class="lineNum">      32 </span>            :   #ifdef USE_CAPABILITIES
+<span class="lineNum">      33 </span>            :     #include &lt;sys/capability.h&gt;
+<span class="lineNum">      34 </span>            :   #endif
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &quot;types.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;memory.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;i18n.h&quot;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #if defined(MAP_ANON) &amp;&amp; !defined(MAP_ANONYMOUS)
+<span class="lineNum">      43 </span>            :   #define MAP_ANONYMOUS MAP_ANON
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #define DEFAULT_POOLSIZE 16384
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : typedef struct memblock_struct MEMBLOCK;
+<span class="lineNum">      49 </span>            : struct memblock_struct {
+<span class="lineNum">      50 </span>            :     unsigned size;
+<span class="lineNum">      51 </span>            :     union {
+<span class="lineNum">      52 </span>            :         MEMBLOCK *next;
+<span class="lineNum">      53 </span>            :         PROPERLY_ALIGNED_TYPE aligned;
+<span class="lineNum">      54 </span>            :     } u;
+<span class="lineNum">      55 </span>            : };
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : static void  *pool;
+<span class="lineNum">      60 </span>            : static volatile int pool_okay; /* may be checked in an atexit function */
+<span class="lineNum">      61 </span>            : static volatile int pool_is_mmapped;
+<span class="lineNum">      62 </span>            : static size_t poolsize; /* allocated length */
+<span class="lineNum">      63 </span>            : static size_t poollen;  /* used length */
+<span class="lineNum">      64 </span>            : static MEMBLOCK *unused_blocks;
+<span class="lineNum">      65 </span>            : static unsigned max_alloced;
+<span class="lineNum">      66 </span>            : static unsigned cur_alloced;
+<span class="lineNum">      67 </span>            : static unsigned max_blocks;
+<span class="lineNum">      68 </span>            : static unsigned cur_blocks;
+<span class="lineNum">      69 </span>            : static int disable_secmem;
+<span class="lineNum">      70 </span>            : static int show_warning;
+<span class="lineNum">      71 </span>            : static int no_warning;
+<span class="lineNum">      72 </span>            : static int suspend_warning;
+<span class="lineNum">      73 </span>            : 
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<span class="lineNum">      75 </span>            : static void
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : print_warn(void)</span>
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     if( !no_warning )</span>
+<span class="lineNum">      79 </span>            :         log_info(_(&quot;Warning: using insecure memory!\n&quot;));
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      81 </span>            : 
+<a name="82"><span class="lineNum">      82 </span>            : </a>
+<span class="lineNum">      83 </span>            : static void
+<span class="lineNum">      84 </span><span class="lineCov">        714 : lock_pool( void *p, size_t n )</span>
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :   #if defined(USE_CAPABILITIES) &amp;&amp; defined(HAVE_MLOCK)
+<span class="lineNum">      87 </span>            :     int err;
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            :     cap_set_proc( cap_from_text(&quot;cap_ipc_lock+ep&quot;) );
+<span class="lineNum">      90 </span>            :     err = mlock( p, n );
+<span class="lineNum">      91 </span>            :     if( err &amp;&amp; errno )
+<span class="lineNum">      92 </span>            :         err = errno;
+<span class="lineNum">      93 </span>            :     cap_set_proc( cap_from_text(&quot;cap_ipc_lock+p&quot;) );
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     if( err ) {
+<span class="lineNum">      96 </span>            :         if( errno != EPERM
+<span class="lineNum">      97 </span>            :           #ifdef EAGAIN  /* OpenBSD returns this */
+<span class="lineNum">      98 </span>            :             &amp;&amp; errno != EAGAIN
+<span class="lineNum">      99 </span>            :           #endif
+<span class="lineNum">     100 </span>            :           #ifdef ENOSYS  /* Some SCOs return this (function not implemented) */
+<span class="lineNum">     101 </span>            :             &amp;&amp; errno != ENOSYS
+<span class="lineNum">     102 </span>            :           #endif
+<span class="lineNum">     103 </span>            :           #ifdef ENOMEM  /* Linux can return this */
+<span class="lineNum">     104 </span>            :             &amp;&amp; errno != ENOMEM
+<span class="lineNum">     105 </span>            :           #endif
+<span class="lineNum">     106 </span>            :           )
+<span class="lineNum">     107 </span>            :             log_error(&quot;can't lock memory: %s\n&quot;, strerror(err));
+<span class="lineNum">     108 </span>            :         show_warning = 1;
+<span class="lineNum">     109 </span>            :     }
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :   #elif defined(HAVE_MLOCK)
+<span class="lineNum">     112 </span>            :     uid_t uid;
+<span class="lineNum">     113 </span>            :     int err;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">        714 :     uid = getuid();</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :   #ifdef HAVE_BROKEN_MLOCK
+<span class="lineNum">     118 </span>            :     if( uid ) {
+<span class="lineNum">     119 </span>            :         errno = EPERM;
+<span class="lineNum">     120 </span>            :         err = errno;
+<span class="lineNum">     121 </span>            :     }
+<span class="lineNum">     122 </span>            :     else {
+<span class="lineNum">     123 </span>            :         err = mlock( p, n );
+<span class="lineNum">     124 </span>            :         if( err &amp;&amp; errno )
+<span class="lineNum">     125 </span>            :             err = errno;
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span>            :   #else
+<span class="lineNum">     128 </span><span class="lineCov">        714 :     err = mlock( p, n );</span>
+<span class="lineNum">     129 </span><span class="lineCov">        714 :     if( err &amp;&amp; errno )</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         err = errno;</span>
+<span class="lineNum">     131 </span>            :   #endif
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">        714 :     if( uid &amp;&amp; !geteuid() ) {</span>
+<span class="lineNum">     134 </span>            :         /* check that we really dropped the privs.
+<span class="lineNum">     135 </span>            :          * Note: setuid(0) should always fail */
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         if( setuid( uid ) || getuid() != geteuid() || !setuid(0) )</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             log_fatal(&quot;failed to reset uid: %s\n&quot;, strerror(errno));</span>
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">        714 :     if( err ) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         if( errno != EPERM</span>
+<span class="lineNum">     142 </span>            :           #ifdef EAGAIN  /* OpenBSD returns this */
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             &amp;&amp; errno != EAGAIN</span>
+<span class="lineNum">     144 </span>            :           #endif
+<span class="lineNum">     145 </span>            :           #ifdef ENOSYS  /* Some SCOs return this (function not implemented) */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             &amp;&amp; errno != ENOSYS</span>
+<span class="lineNum">     147 </span>            :           #endif
+<span class="lineNum">     148 </span>            :           #ifdef ENOMEM  /* Linux can return this */
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             &amp;&amp; errno != ENOMEM</span>
+<span class="lineNum">     150 </span>            :           #endif
+<span class="lineNum">     151 </span>            :           )
+<span class="lineNum">     152 </span>            :             log_error(&quot;can't lock memory: %s\n&quot;, strerror(err));
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         show_warning = 1;</span>
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :   #elif defined ( __QNX__ )
+<span class="lineNum">     157 </span>            :     /* QNX does not page at all, so the whole secure memory stuff does
+<span class="lineNum">     158 </span>            :      * not make much sense.  However it is still of use because it
+<span class="lineNum">     159 </span>            :      * wipes out the memory on a free().
+<span class="lineNum">     160 </span>            :      * Therefore it is sufficient to suppress the warning
+<span class="lineNum">     161 </span>            :      */
+<span class="lineNum">     162 </span>            :   #elif defined (HAVE_DOSISH_SYSTEM)
+<span class="lineNum">     163 </span>            :     /* It does not make sense to print such a warning, given the fact that 
+<span class="lineNum">     164 </span>            :      * this whole Windows !@#$% and their user base are inherently insecure
+<span class="lineNum">     165 </span>            :      */
+<span class="lineNum">     166 </span>            :   #else
+<span class="lineNum">     167 </span>            :     log_info(&quot;Please note that you don't have secure memory on this system\n&quot;);
+<span class="lineNum">     168 </span>            :   #endif
+<span class="lineNum">     169 </span><span class="lineCov">        714 : }</span>
+<span class="lineNum">     170 </span>            : 
+<a name="171"><span class="lineNum">     171 </span>            : </a>
+<span class="lineNum">     172 </span>            : static void
+<span class="lineNum">     173 </span><span class="lineCov">        714 : init_pool( size_t n)</span>
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span>            :     size_t pgsize;
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">        714 :     poolsize = n;</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">        714 :     if( disable_secmem )</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         log_bug(&quot;secure memory is disabled&quot;);</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :   #ifdef HAVE_GETPAGESIZE
+<span class="lineNum">     183 </span><span class="lineCov">        714 :     pgsize = getpagesize();</span>
+<span class="lineNum">     184 </span>            :   #else
+<span class="lineNum">     185 </span>            :     pgsize = 4096;
+<span class="lineNum">     186 </span>            :   #endif
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :   #if HAVE_MMAP
+<span class="lineNum">     189 </span><span class="lineCov">        714 :     poolsize = (poolsize + pgsize -1 ) &amp; ~(pgsize-1);</span>
+<span class="lineNum">     190 </span>            :     #ifdef MAP_ANONYMOUS
+<span class="lineNum">     191 </span><span class="lineCov">        714 :        pool = mmap( 0, poolsize, PROT_READ|PROT_WRITE,</span>
+<span class="lineNum">     192 </span>            :                                  MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+<span class="lineNum">     193 </span>            :     #else /* map /dev/zero instead */
+<span class="lineNum">     194 </span>            :     {   int fd;
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :         fd = open(&quot;/dev/zero&quot;, O_RDWR);
+<span class="lineNum">     197 </span>            :         if( fd == -1 ) {
+<span class="lineNum">     198 </span>            :             log_error(&quot;can't open /dev/zero: %s\n&quot;, strerror(errno) );
+<span class="lineNum">     199 </span>            :             pool = (void*)-1;
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            :         else {
+<span class="lineNum">     202 </span>            :             pool = mmap( 0, poolsize, PROT_READ|PROT_WRITE,
+<span class="lineNum">     203 </span>            :                                       MAP_PRIVATE, fd, 0);
+<span class="lineNum">     204 </span>            :         }
+<span class="lineNum">     205 </span>            :     }
+<span class="lineNum">     206 </span>            :     #endif
+<span class="lineNum">     207 </span><span class="lineCov">        714 :     if( pool == (void*)-1 )</span>
+<span class="lineNum">     208 </span>            :         log_info(&quot;can't mmap pool of %u bytes: %s - using malloc\n&quot;,
+<span class="lineNum">     209 </span>            :                             (unsigned)poolsize, strerror(errno));
+<span class="lineNum">     210 </span>            :     else {
+<span class="lineNum">     211 </span><span class="lineCov">        714 :         pool_is_mmapped = 1;</span>
+<span class="lineNum">     212 </span><span class="lineCov">        714 :         pool_okay = 1;</span>
+<span class="lineNum">     213 </span>            :     }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :   #endif
+<span class="lineNum">     216 </span><span class="lineCov">        714 :     if( !pool_okay ) {</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         pool = malloc( poolsize );</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if( !pool )</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             log_fatal(&quot;can't allocate memory pool of %u bytes\n&quot;,</span>
+<span class="lineNum">     220 </span>            :                                                        (unsigned)poolsize);
+<span class="lineNum">     221 </span>            :         else
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             pool_okay = 1;</span>
+<span class="lineNum">     223 </span>            :     }
+<span class="lineNum">     224 </span><span class="lineCov">        714 :     lock_pool( pool, poolsize );</span>
+<span class="lineNum">     225 </span><span class="lineCov">        714 :     poollen = 0;</span>
+<span class="lineNum">     226 </span><span class="lineCov">        714 : }</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : 
+<a name="229"><span class="lineNum">     229 </span>            : /* concatenate unused blocks */</a>
+<span class="lineNum">     230 </span>            : static void
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 : compress_pool(void)</span>
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span>            :     /* fixme: we really should do this */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 : }</span>
+<a name="235"><span class="lineNum">     235 </span>            : </a>
+<span class="lineNum">     236 </span>            : void
+<span class="lineNum">     237 </span><span class="lineCov">       1428 : secmem_set_flags( unsigned flags )</span>
+<span class="lineNum">     238 </span>            : {
+<span class="lineNum">     239 </span><span class="lineCov">       1428 :     int was_susp = suspend_warning;</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">       1428 :     no_warning = flags &amp; 1;</span>
+<span class="lineNum">     242 </span><span class="lineCov">       1428 :     suspend_warning = flags &amp; 2;</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            :     /* and now issue the warning if it is not longer suspended */
+<span class="lineNum">     245 </span><span class="lineCov">       1428 :     if( was_susp &amp;&amp; !suspend_warning &amp;&amp; show_warning ) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         show_warning = 0;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         print_warn();</span>
+<span class="lineNum">     248 </span>            :     }
+<span class="lineNum">     249 </span><span class="lineCov">       1428 : }</span>
+<a name="250"><span class="lineNum">     250 </span>            : </a>
+<span class="lineNum">     251 </span>            : unsigned
+<span class="lineNum">     252 </span><span class="lineCov">       1428 : secmem_get_flags(void)</span>
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span>            :     unsigned flags;
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineCov">       1428 :     flags  = no_warning      ? 1:0;</span>
+<span class="lineNum">     257 </span><span class="lineCov">       1428 :     flags |= suspend_warning ? 2:0;</span>
+<span class="lineNum">     258 </span><span class="lineCov">       1428 :     return flags;</span>
+<span class="lineNum">     259 </span>            : }
+<a name="260"><span class="lineNum">     260 </span>            : </a>
+<span class="lineNum">     261 </span>            : void
+<span class="lineNum">     262 </span><span class="lineCov">        714 : secmem_init( size_t n )</span>
+<span class="lineNum">     263 </span>            : {
+<span class="lineNum">     264 </span><span class="lineCov">        714 :     if( !n ) {</span>
+<span class="lineNum">     265 </span>            :       #ifdef USE_CAPABILITIES
+<span class="lineNum">     266 </span>            :         /* drop all capabilities */
+<span class="lineNum">     267 </span>            :         cap_set_proc( cap_from_text(&quot;all-eip&quot;) );
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            :       #elif !defined(HAVE_DOSISH_SYSTEM)
+<span class="lineNum">     270 </span>            :         uid_t uid;
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         disable_secmem=1;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         uid = getuid();</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if( uid != geteuid() ) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             if( setuid( uid ) || getuid() != geteuid() || !setuid(0) )</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                 log_fatal(&quot;failed to drop setuid\n&quot; );</span>
+<span class="lineNum">     277 </span>            :         }
+<span class="lineNum">     278 </span>            :       #endif
+<span class="lineNum">     279 </span>            :     }
+<span class="lineNum">     280 </span>            :     else {
+<span class="lineNum">     281 </span><span class="lineCov">        714 :         if( n &lt; DEFAULT_POOLSIZE )</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             n = DEFAULT_POOLSIZE;</span>
+<span class="lineNum">     283 </span><span class="lineCov">        714 :         if( !pool_okay )</span>
+<span class="lineNum">     284 </span><span class="lineCov">        714 :             init_pool(n);</span>
+<span class="lineNum">     285 </span>            :         else
+<span class="lineNum">     286 </span>            :             log_error(&quot;Oops, secure memory pool already initialized\n&quot;);
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span><span class="lineCov">        714 : }</span>
+<span class="lineNum">     289 </span>            : 
+<a name="290"><span class="lineNum">     290 </span>            : </a>
+<span class="lineNum">     291 </span>            : void *
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 : secmem_malloc( size_t size )</span>
+<span class="lineNum">     293 </span>            : {
+<span class="lineNum">     294 </span>            :     MEMBLOCK *mb, *mb2;
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     int compressed=0;</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     if( !pool_okay ) {</span>
+<span class="lineNum">     298 </span>            :         log_info(
+<span class="lineNum">     299 </span>            :          _(&quot;operation is not possible without initialized secure memory\n&quot;));
+<span class="lineNum">     300 </span>            :         log_info(_(&quot;(you may have used the wrong program for this task)\n&quot;));
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         exit(2);</span>
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     if( show_warning &amp;&amp; !suspend_warning ) {</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         show_warning = 0;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         print_warn();</span>
+<span class="lineNum">     306 </span>            :     }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :     /* blocks are always a multiple of 32 */
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     size += sizeof(MEMBLOCK);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     size = ((size + 31) / 32) * 32;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            :   retry:
+<span class="lineNum">     313 </span>            :     /* try to get it from the used blocks */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     for(mb = unused_blocks,mb2=NULL; mb; mb2=mb, mb = mb-&gt;u.next )</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         if( mb-&gt;size &gt;= size ) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             if( mb2 )</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                 mb2-&gt;u.next = mb-&gt;u.next;</span>
+<span class="lineNum">     318 </span>            :             else
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 unused_blocks = mb-&gt;u.next;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             goto leave;</span>
+<span class="lineNum">     321 </span>            :         }
+<span class="lineNum">     322 </span>            :     /* allocate a new block */
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     if( (poollen + size &lt;= poolsize) ) {</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         mb = (void*)((char*)pool + poollen);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         poollen += size;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         mb-&gt;size = size;</span>
+<span class="lineNum">     327 </span>            :     }
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     else if( !compressed ) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         compressed=1;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         compress_pool();</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         goto retry;</span>
+<span class="lineNum">     332 </span>            :     }
+<span class="lineNum">     333 </span>            :     else
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :   leave:
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     cur_alloced += mb-&gt;size;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     cur_blocks++;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     if( cur_alloced &gt; max_alloced )</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         max_alloced = cur_alloced;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if( cur_blocks &gt; max_blocks )</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         max_blocks = cur_blocks;</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     return &amp;mb-&gt;u.aligned.c;</span>
+<span class="lineNum">     345 </span>            : }
+<span class="lineNum">     346 </span>            : 
+<a name="347"><span class="lineNum">     347 </span>            : </a>
+<span class="lineNum">     348 </span>            : void *
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 : secmem_realloc( void *p, size_t newsize )</span>
+<span class="lineNum">     350 </span>            : {
+<span class="lineNum">     351 </span>            :     MEMBLOCK *mb;
+<span class="lineNum">     352 </span>            :     size_t size;
+<span class="lineNum">     353 </span>            :     void *a;
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     mb = (MEMBLOCK*)((char*)p - ((size_t) &amp;((MEMBLOCK*)0)-&gt;u.aligned.c));</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     size = mb-&gt;size;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     if( newsize &lt; size )</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         return p; /* it is easier not to shrink the memory */</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     a = secmem_malloc( newsize );</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     if ( a ) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         memcpy(a, p, size);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         memset((char*)a+size, 0, newsize-size);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         secmem_free(p);</span>
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     return a;</span>
+<span class="lineNum">     366 </span>            : }
+<span class="lineNum">     367 </span>            : 
+<a name="368"><span class="lineNum">     368 </span>            : </a>
+<span class="lineNum">     369 </span>            : void
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 : secmem_free( void *a )</span>
+<span class="lineNum">     371 </span>            : {
+<span class="lineNum">     372 </span>            :     MEMBLOCK *mb;
+<span class="lineNum">     373 </span>            :     size_t size;
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     if( !a )</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     mb = (MEMBLOCK*)((char*)a - ((size_t) &amp;((MEMBLOCK*)0)-&gt;u.aligned.c));</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     size = mb-&gt;size;</span>
+<span class="lineNum">     380 </span>            :     /* This does not make much sense: probably this memory is held in the
+<span class="lineNum">     381 </span>            :      * cache. We do it anyway: */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     memset(mb, 0xff, size );</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     memset(mb, 0xaa, size );</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     memset(mb, 0x55, size );</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     memset(mb, 0x00, size );</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     mb-&gt;size = size;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     mb-&gt;u.next = unused_blocks;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     unused_blocks = mb;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     cur_blocks--;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     cur_alloced -= size;</span>
+<span class="lineNum">     391 </span>            : }
+<a name="392"><span class="lineNum">     392 </span>            : </a>
+<span class="lineNum">     393 </span>            : int
+<span class="lineNum">     394 </span><span class="lineCov">       9688 : m_is_secure( const void *p )</span>
+<span class="lineNum">     395 </span>            : {
+<span class="lineNum">     396 </span><span class="lineCov">       9688 :     return p &gt;= pool &amp;&amp; p &lt; (void*)((char*)pool+poolsize);</span>
+<span class="lineNum">     397 </span>            : }
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            : /****************
+<span class="lineNum">     402 </span>            :  * Warning:  This code might be called by an interrupt handler
+<span class="lineNum">     403 </span>            :  *           and frankly, there should really be such a handler,
+<span class="lineNum">     404 </span>            :  *           to make sure that the memory is wiped out.
+<span class="lineNum">     405 </span>            :  *           We hope that the OS wipes out mlocked memory after
+<span class="lineNum">     406 </span>            :  *           receiving a SIGKILL - it really should do so, otherwise
+<span class="lineNum">     407 </span>            :  *           there is no chance to get the secure memory cleaned.
+<a name="408"><span class="lineNum">     408 </span>            :  */</a>
+<span class="lineNum">     409 </span>            : void
+<span class="lineNum">     410 </span><span class="lineCov">         41 : secmem_term()</span>
+<span class="lineNum">     411 </span>            : {
+<span class="lineNum">     412 </span><span class="lineCov">         41 :     if( !pool_okay )</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineCov">         41 :     memset( pool, 0xff, poolsize);</span>
+<span class="lineNum">     416 </span><span class="lineCov">         41 :     memset( pool, 0xaa, poolsize);</span>
+<span class="lineNum">     417 </span><span class="lineCov">         41 :     memset( pool, 0x55, poolsize);</span>
+<span class="lineNum">     418 </span><span class="lineCov">         41 :     memset( pool, 0x00, poolsize);</span>
+<span class="lineNum">     419 </span>            :   #if HAVE_MMAP
+<span class="lineNum">     420 </span><span class="lineCov">         41 :     if( pool_is_mmapped )</span>
+<span class="lineNum">     421 </span><span class="lineCov">         41 :         munmap( pool, poolsize );</span>
+<span class="lineNum">     422 </span>            :   #endif
+<span class="lineNum">     423 </span><span class="lineCov">         41 :     pool = NULL;</span>
+<span class="lineNum">     424 </span><span class="lineCov">         41 :     pool_okay = 0;</span>
+<span class="lineNum">     425 </span><span class="lineCov">         41 :     poolsize=0;</span>
+<span class="lineNum">     426 </span><span class="lineCov">         41 :     poollen=0;</span>
+<span class="lineNum">     427 </span><span class="lineCov">         41 :     unused_blocks=NULL;</span>
+<span class="lineNum">     428 </span>            : }
+<span class="lineNum">     429 </span>            : 
+<a name="430"><span class="lineNum">     430 </span>            : </a>
+<span class="lineNum">     431 </span>            : void
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 : secmem_dump_stats()</span>
+<span class="lineNum">     433 </span>            : {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     if( disable_secmem )</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     fprintf(stderr,</span>
+<span class="lineNum">     437 </span>            :                 &quot;secmem usage: %u/%u bytes in %u/%u blocks of pool %lu/%lu\n&quot;,
+<span class="lineNum">     438 </span>            :                 cur_alloced, max_alloced, cur_blocks, max_blocks,
+<span class="lineNum">     439 </span>            :                 (ulong)poollen, (ulong)poolsize );
+<span class="lineNum">     440 </span>            : }
+<span class="lineNum">     441 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

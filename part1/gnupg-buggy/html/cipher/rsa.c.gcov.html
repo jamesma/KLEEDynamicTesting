@@ -1,0 +1,539 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - cipher/rsa.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cipher</a> - rsa.c<span style="font-size: 80%;"> (source / <a href="rsa.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">183</td>
+            <td class="headerCovTableEntryLo">4.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2012-11-04</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">7.7 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* rsa.c  -  RSA function</a>
+<span class="lineNum">       2 </span>            :  *      Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
+<span class="lineNum">       3 </span>            :  *      Copyright (C) 2000, 2001 Free Software Foundation, Inc.
+<span class="lineNum">       4 </span>            :  *
+<span class="lineNum">       5 </span>            :  * This file is part of GnuPG.
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * GnuPG is free software; you can redistribute it and/or modify
+<span class="lineNum">       8 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       9 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">      10 </span>            :  * (at your option) any later version.
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  * GnuPG is distributed in the hope that it will be useful,
+<span class="lineNum">      13 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      14 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      15 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      18 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      19 </span>            :  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+<span class="lineNum">      20 </span>            :  */
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /* This code uses an algorithm protected by U.S. Patent #4,405,829
+<span class="lineNum">      23 </span>            :    which expires on September 20, 2000.  The patent holder placed that
+<span class="lineNum">      24 </span>            :    patent into the public domain on Sep 6th, 2000.
+<span class="lineNum">      25 </span>            : */
+<span class="lineNum">      26 </span>            :  
+<span class="lineNum">      27 </span>            : #include &lt;config.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      31 </span>            : #include &quot;util.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;cipher.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;rsa.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : typedef struct {
+<span class="lineNum">      38 </span>            :     MPI n;          /* modulus */
+<span class="lineNum">      39 </span>            :     MPI e;          /* exponent */
+<span class="lineNum">      40 </span>            : } RSA_public_key;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : typedef struct {
+<span class="lineNum">      44 </span>            :     MPI n;          /* public modulus */
+<span class="lineNum">      45 </span>            :     MPI e;          /* public exponent */
+<span class="lineNum">      46 </span>            :     MPI d;          /* exponent */
+<span class="lineNum">      47 </span>            :     MPI p;          /* prime  p. */
+<span class="lineNum">      48 </span>            :     MPI q;          /* prime  q. */
+<span class="lineNum">      49 </span>            :     MPI u;          /* inverse of p mod q. */
+<span class="lineNum">      50 </span>            : } RSA_secret_key;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : static void test_keys( RSA_secret_key *sk, unsigned nbits );
+<span class="lineNum">      54 </span>            : static void generate( RSA_secret_key *sk, unsigned nbits );
+<span class="lineNum">      55 </span>            : static int  check_secret_key( RSA_secret_key *sk );
+<span class="lineNum">      56 </span>            : static void public(MPI output, MPI input, RSA_public_key *skey );
+<span class="lineNum">      57 </span>            : static void secret(MPI output, MPI input, RSA_secret_key *skey );
+<span class="lineNum">      58 </span>            : 
+<a name="59"><span class="lineNum">      59 </span>            : </a>
+<span class="lineNum">      60 </span>            : static void
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : test_keys( RSA_secret_key *sk, unsigned nbits )</span>
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span>            :     RSA_public_key pk;
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     MPI test = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     MPI out1 = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     MPI out2 = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     pk.n = sk-&gt;n;</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     pk.e = sk-&gt;e;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     {   char *p = get_random_bits( nbits, 0, 0 );</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         mpi_set_buffer( test, p, (nbits+7)/8, 0 );</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         m_free(p);</span>
+<span class="lineNum">      73 </span>            :     }
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     public( out1, test, &amp;pk );</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     secret( out2, out1, sk );</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     if( mpi_cmp( test, out2 ) )</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :         log_fatal(&quot;RSA operation: public, secret failed\n&quot;);</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     secret( out1, test, sk );</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     public( out2, out1, &amp;pk );</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     if( mpi_cmp( test, out2 ) )</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         log_fatal(&quot;RSA operation: secret, public failed\n&quot;);</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     mpi_free( test );</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     mpi_free( out1 );</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     mpi_free( out2 );</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : /****************
+<span class="lineNum">      89 </span>            :  * Generate a key pair with a key of size NBITS
+<span class="lineNum">      90 </span>            :  * Returns: 2 structures filles with all needed values
+<a name="91"><span class="lineNum">      91 </span>            :  */</a>
+<span class="lineNum">      92 </span>            : static void
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 : generate( RSA_secret_key *sk, unsigned nbits )</span>
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :     MPI p, q; /* the two primes */
+<span class="lineNum">      96 </span>            :     MPI d;    /* the private key */
+<span class="lineNum">      97 </span>            :     MPI u;
+<span class="lineNum">      98 </span>            :     MPI t1, t2;
+<span class="lineNum">      99 </span>            :     MPI n;    /* the public key */
+<span class="lineNum">     100 </span>            :     MPI e;    /* the exponent */
+<span class="lineNum">     101 </span>            :     MPI phi;  /* helper: (p-1)(q-1) */
+<span class="lineNum">     102 </span>            :     MPI g;
+<span class="lineNum">     103 </span>            :     MPI f;
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :     /* select two (very secret) primes */
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     p = generate_secret_prime( nbits / 2 );</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     q = generate_secret_prime( nbits / 2 );</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if( mpi_cmp( p, q ) &gt; 0 ) /* p shall be smaller than q (for calc of u)*/</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         mpi_swap(p,q);</span>
+<span class="lineNum">     110 </span>            :     /* calculate Euler totient: phi = (p-1)(q-1) */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     t1 = mpi_alloc_secure( mpi_get_nlimbs(p) );</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     t2 = mpi_alloc_secure( mpi_get_nlimbs(p) );</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     phi = mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     g   = mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB  );</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     f   = mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB  );</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     mpi_sub_ui( t1, p, 1 );</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     mpi_sub_ui( t2, q, 1 );</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     mpi_mul( phi, t1, t2 );</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     mpi_gcd(g, t1, t2);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     mpi_fdiv_q(f, phi, g);</span>
+<span class="lineNum">     121 </span>            :     /* multiply them to make the private key */
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     n = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     mpi_mul( n, p, q );</span>
+<span class="lineNum">     124 </span>            :     /* find a public exponent  */
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     e = mpi_alloc( (6+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     mpi_set_ui( e, 17); /* start with 17 */</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     while( !mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         mpi_add_ui( e, e, 2);</span>
+<span class="lineNum">     129 </span>            :     /* calculate the secret key d = e^1 mod phi */
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     d = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     mpi_invm(d, e, f );</span>
+<span class="lineNum">     132 </span>            :     /* calculate the inverse of p and q (used for chinese remainder theorem)*/
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     u = mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     mpi_invm(u, p, q );</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     if( DBG_CIPHER ) {</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  p= &quot;, p );</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  q= &quot;, q );</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;phi= &quot;, phi );</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  g= &quot;, g );</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  f= &quot;, f );</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  n= &quot;, n );</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  e= &quot;, e );</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  d= &quot;, d );</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         log_mpidump(&quot;  u= &quot;, u );</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     mpi_free(t1);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     mpi_free(t2);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     mpi_free(phi);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     mpi_free(f);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     mpi_free(g);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     sk-&gt;n = n;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     sk-&gt;e = e;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     sk-&gt;p = p;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     sk-&gt;q = q;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     sk-&gt;d = d;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     sk-&gt;u = u;</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            :     /* now we can test our keys (this should never fail!) */
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     test_keys( sk, nbits - 64 );</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : /****************
+<span class="lineNum">     167 </span>            :  * Test wether the secret key is valid.
+<span class="lineNum">     168 </span>            :  * Returns: true if this is a valid key.
+<a name="169"><span class="lineNum">     169 </span>            :  */</a>
+<span class="lineNum">     170 </span>            : static int
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 : check_secret_key( RSA_secret_key *sk )</span>
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :     int rc;
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     MPI temp = mpi_alloc( mpi_get_nlimbs(sk-&gt;p)*2 );</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     mpi_mul(temp, sk-&gt;p, sk-&gt;q );</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     rc = mpi_cmp( temp, sk-&gt;n );</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     mpi_free(temp);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     return !rc;</span>
+<span class="lineNum">     180 </span>            : }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : /****************
+<span class="lineNum">     185 </span>            :  * Public key operation. Encrypt INPUT with PKEY and put result into OUTPUT.
+<span class="lineNum">     186 </span>            :  *
+<span class="lineNum">     187 </span>            :  *      c = m^e mod n
+<span class="lineNum">     188 </span>            :  *
+<span class="lineNum">     189 </span>            :  * Where c is OUTPUT, m is INPUT and e,n are elements of PKEY.
+<a name="190"><span class="lineNum">     190 </span>            :  */</a>
+<span class="lineNum">     191 </span>            : static void
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 : public(MPI output, MPI input, RSA_public_key *pkey )</span>
+<span class="lineNum">     193 </span>            : {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     if( output == input ) { /* powm doesn't like output and input the same */</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         MPI x = mpi_alloc( mpi_get_nlimbs(input)*2 );</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         mpi_powm( x, input, pkey-&gt;e, pkey-&gt;n );</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         mpi_set(output, x);</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         mpi_free(x);</span>
+<span class="lineNum">     199 </span>            :     }
+<span class="lineNum">     200 </span>            :     else
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         mpi_powm( output, input, pkey-&gt;e, pkey-&gt;n );</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : #if 0
+<span class="lineNum">     205 </span>            : static void
+<span class="lineNum">     206 </span>            : stronger_key_check ( RSA_secret_key *skey )
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :     MPI t = mpi_alloc_secure ( 0 );
+<span class="lineNum">     209 </span>            :     MPI t1 = mpi_alloc_secure ( 0 );
+<span class="lineNum">     210 </span>            :     MPI t2 = mpi_alloc_secure ( 0 );
+<span class="lineNum">     211 </span>            :     MPI phi = mpi_alloc_secure ( 0 );
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :     /* check that n == p * q */
+<span class="lineNum">     214 </span>            :     mpi_mul( t, skey-&gt;p, skey-&gt;q);
+<span class="lineNum">     215 </span>            :     if (mpi_cmp( t, skey-&gt;n) )
+<span class="lineNum">     216 </span>            :         log_info ( &quot;RSA Oops: n != p * q\n&quot; );
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :     /* check that p is less than q */
+<span class="lineNum">     219 </span>            :     if( mpi_cmp( skey-&gt;p, skey-&gt;q ) &gt; 0 )
+<span class="lineNum">     220 </span>            :         log_info (&quot;RSA Oops: p &gt;= q\n&quot;);
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     /* check that e divides neither p-1 nor q-1 */
+<span class="lineNum">     224 </span>            :     mpi_sub_ui(t, skey-&gt;p, 1 );
+<span class="lineNum">     225 </span>            :     mpi_fdiv_r(t, t, skey-&gt;e );
+<span class="lineNum">     226 </span>            :     if ( !mpi_cmp_ui( t, 0) )
+<span class="lineNum">     227 </span>            :         log_info ( &quot;RSA Oops: e divides p-1\n&quot; );
+<span class="lineNum">     228 </span>            :     mpi_sub_ui(t, skey-&gt;q, 1 );
+<span class="lineNum">     229 </span>            :     mpi_fdiv_r(t, t, skey-&gt;e );
+<span class="lineNum">     230 </span>            :     if ( !mpi_cmp_ui( t, 0) )
+<span class="lineNum">     231 </span>            :         log_info ( &quot;RSA Oops: e divides q-1\n&quot; );
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :     /* check that d is correct */
+<span class="lineNum">     234 </span>            :     mpi_sub_ui( t1, skey-&gt;p, 1 );
+<span class="lineNum">     235 </span>            :     mpi_sub_ui( t2, skey-&gt;q, 1 );
+<span class="lineNum">     236 </span>            :     mpi_mul( phi, t1, t2 );
+<span class="lineNum">     237 </span>            :     mpi_gcd(t, t1, t2);
+<span class="lineNum">     238 </span>            :     mpi_fdiv_q(t, phi, t);
+<span class="lineNum">     239 </span>            :     mpi_invm(t, skey-&gt;e, t );
+<span class="lineNum">     240 </span>            :     if ( mpi_cmp(t, skey-&gt;d ) )
+<span class="lineNum">     241 </span>            :         log_info ( &quot;RSA Oops: d is wrong\n&quot;);
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :     /* check for crrectness of u */
+<span class="lineNum">     244 </span>            :     mpi_invm(t, skey-&gt;p, skey-&gt;q );
+<span class="lineNum">     245 </span>            :     if ( mpi_cmp(t, skey-&gt;u ) )
+<span class="lineNum">     246 </span>            :         log_info ( &quot;RSA Oops: u is wrong\n&quot;);
+<span class="lineNum">     247 </span>            :    
+<span class="lineNum">     248 </span>            :     log_info ( &quot;RSA secret key check finished\n&quot;);
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :     mpi_free (t);
+<span class="lineNum">     251 </span>            :     mpi_free (t1);
+<span class="lineNum">     252 </span>            :     mpi_free (t2);
+<span class="lineNum">     253 </span>            :     mpi_free (phi);
+<span class="lineNum">     254 </span>            : }
+<span class="lineNum">     255 </span>            : #endif
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : /****************
+<span class="lineNum">     259 </span>            :  * Secret key operation. Encrypt INPUT with SKEY and put result into OUTPUT.
+<span class="lineNum">     260 </span>            :  *
+<span class="lineNum">     261 </span>            :  *      m = c^d mod n
+<span class="lineNum">     262 </span>            :  *
+<span class="lineNum">     263 </span>            :  * Or faster:
+<span class="lineNum">     264 </span>            :  *
+<span class="lineNum">     265 </span>            :  *      m1 = c ^ (d mod (p-1)) mod p 
+<span class="lineNum">     266 </span>            :  *      m2 = c ^ (d mod (q-1)) mod q 
+<span class="lineNum">     267 </span>            :  *      h = u * (m2 - m1) mod q 
+<span class="lineNum">     268 </span>            :  *      m = m1 + h * p
+<span class="lineNum">     269 </span>            :  *
+<span class="lineNum">     270 </span>            :  * Where m is OUTPUT, c is INPUT and d,n,p,q,u are elements of SKEY.
+<a name="271"><span class="lineNum">     271 </span>            :  */</a>
+<span class="lineNum">     272 </span>            : static void
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 : secret(MPI output, MPI input, RSA_secret_key *skey )</span>
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span>            :   #if 0
+<span class="lineNum">     276 </span>            :     mpi_powm( output, input, skey-&gt;d, skey-&gt;n );
+<span class="lineNum">     277 </span>            :   #else
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     MPI m1   = mpi_alloc_secure( mpi_get_nlimbs(skey-&gt;n)+1 );</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     MPI m2   = mpi_alloc_secure( mpi_get_nlimbs(skey-&gt;n)+1 );</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     MPI h    = mpi_alloc_secure( mpi_get_nlimbs(skey-&gt;n)+1 );</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :     /* m1 = c ^ (d mod (p-1)) mod p */
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     mpi_sub_ui( h, skey-&gt;p, 1  );</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     mpi_fdiv_r( h, skey-&gt;d, h );   </span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     mpi_powm( m1, input, h, skey-&gt;p );</span>
+<span class="lineNum">     286 </span>            :     /* m2 = c ^ (d mod (q-1)) mod q */
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     mpi_sub_ui( h, skey-&gt;q, 1  );</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     mpi_fdiv_r( h, skey-&gt;d, h );</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     mpi_powm( m2, input, h, skey-&gt;q );</span>
+<span class="lineNum">     290 </span>            :     /* h = u * ( m2 - m1 ) mod q */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     mpi_sub( h, m2, m1 );</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     if ( mpi_is_neg( h ) ) </span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         mpi_add ( h, h, skey-&gt;q );</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     mpi_mulm( h, skey-&gt;u, h, skey-&gt;q ); </span>
+<span class="lineNum">     295 </span>            :     /* m = m2 + h * p */
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     mpi_mul ( h, h, skey-&gt;p );</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     mpi_add ( output, m1, h );</span>
+<span class="lineNum">     298 </span>            :     /* ready */
+<span class="lineNum">     299 </span>            :     
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     mpi_free ( h );</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     mpi_free ( m1 );</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     mpi_free ( m2 );</span>
+<span class="lineNum">     303 </span>            :   #endif
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : /*********************************************
+<span class="lineNum">     308 </span>            :  **************  interface  ******************
+<span class="lineNum">     309 </span>            :  *********************************************/
+<a name="310"><span class="lineNum">     310 </span>            : </a>
+<span class="lineNum">     311 </span>            : int
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 : rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )</span>
+<span class="lineNum">     313 </span>            : {
+<span class="lineNum">     314 </span>            :     RSA_secret_key sk;
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     if( !is_RSA(algo) )</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     generate( &amp;sk, nbits );</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     skey[0] = sk.n;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     skey[1] = sk.e;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     skey[2] = sk.d;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     skey[3] = sk.p;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     skey[4] = sk.q;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     skey[5] = sk.u;</span>
+<span class="lineNum">     326 </span>            :     /* make an empty list of factors */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     *retfactors = m_alloc_clear( 1 * sizeof **retfactors );</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     329 </span>            : }
+<span class="lineNum">     330 </span>            : 
+<a name="331"><span class="lineNum">     331 </span>            : </a>
+<span class="lineNum">     332 </span>            : int
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 : rsa_check_secret_key( int algo, MPI *skey )</span>
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :     RSA_secret_key sk;
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     if( !is_RSA(algo) )</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     sk.n = skey[0];</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     sk.e = skey[1];</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     sk.d = skey[2];</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     sk.p = skey[3];</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     sk.q = skey[4];</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     sk.u = skey[5];</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     if( !check_secret_key( &amp;sk ) )</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         return G10ERR_BAD_SECKEY;</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     350 </span>            : }
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            : 
+<a name="353"><span class="lineNum">     353 </span>            : </a>
+<span class="lineNum">     354 </span>            : int
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 : rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )</span>
+<span class="lineNum">     356 </span>            : {
+<span class="lineNum">     357 </span>            :     RSA_public_key pk;
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     if( algo != 1 &amp;&amp; algo != 2 )</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     pk.n = pkey[0];</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     pk.e = pkey[1];</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     resarr[0] = mpi_alloc( mpi_get_nlimbs( pk.n ) );</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     public( resarr[0], data, &amp;pk );</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     367 </span>            : }
+<a name="368"><span class="lineNum">     368 </span>            : </a>
+<span class="lineNum">     369 </span>            : int
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 : rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey )</span>
+<span class="lineNum">     371 </span>            : {
+<span class="lineNum">     372 </span>            :     RSA_secret_key sk;
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     if( algo != 1 &amp;&amp; algo != 2 )</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     sk.n = skey[0];</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     sk.e = skey[1];</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     sk.d = skey[2];</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     sk.p = skey[3];</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     sk.q = skey[4];</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     sk.u = skey[5];</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     *result = mpi_alloc_secure( mpi_get_nlimbs( sk.n ) );</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     secret( *result, data[0], &amp;sk );</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     386 </span>            : }
+<a name="387"><span class="lineNum">     387 </span>            : </a>
+<span class="lineNum">     388 </span>            : int
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 : rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )</span>
+<span class="lineNum">     390 </span>            : {
+<span class="lineNum">     391 </span>            :     RSA_secret_key sk;
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     if( algo != 1 &amp;&amp; algo != 3 )</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     sk.n = skey[0];</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     sk.e = skey[1];</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     sk.d = skey[2];</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     sk.p = skey[3];</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     sk.q = skey[4];</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     sk.u = skey[5];</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     resarr[0] = mpi_alloc( mpi_get_nlimbs( sk.n ) );</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     secret( resarr[0], data, &amp;sk );</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     406 </span>            : }
+<a name="407"><span class="lineNum">     407 </span>            : </a>
+<span class="lineNum">     408 </span>            : int
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 : rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,</span>
+<span class="lineNum">     410 </span>            :            int (*cmp)(void *opaque, MPI tmp), void *opaquev )
+<span class="lineNum">     411 </span>            : {
+<span class="lineNum">     412 </span>            :     RSA_public_key pk;
+<span class="lineNum">     413 </span>            :     MPI result;
+<span class="lineNum">     414 </span>            :     int rc;
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if( algo != 1 &amp;&amp; algo != 3 )</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         return G10ERR_PUBKEY_ALGO;</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     pk.n = pkey[0];</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     pk.e = pkey[1];</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     result = mpi_alloc( (160+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     public( result, data[0], &amp;pk );</span>
+<span class="lineNum">     422 </span>            :     /*rc = (*cmp)( opaquev, result );*/
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     rc = mpi_cmp( result, hash )? G10ERR_BAD_SIGN:0;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     mpi_free(result);</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     427 </span>            : }
+<span class="lineNum">     428 </span>            : 
+<a name="429"><span class="lineNum">     429 </span>            : </a>
+<span class="lineNum">     430 </span>            : unsigned int
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 : rsa_get_nbits( int algo, MPI *pkey )</span>
+<span class="lineNum">     432 </span>            : {
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     if( !is_RSA(algo) )</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     return mpi_get_nbits( pkey[0] );</span>
+<span class="lineNum">     436 </span>            : }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            : /****************
+<span class="lineNum">     440 </span>            :  * Return some information about the algorithm.  We need algo here to
+<span class="lineNum">     441 </span>            :  * distinguish different flavors of the algorithm.
+<span class="lineNum">     442 </span>            :  * Returns: A pointer to string describing the algorithm or NULL if
+<span class="lineNum">     443 </span>            :  *          the ALGO is invalid.
+<span class="lineNum">     444 </span>            :  * Usage: Bit 0 set : allows signing
+<span class="lineNum">     445 </span>            :  *            1 set : allows encryption
+<a name="446"><span class="lineNum">     446 </span>            :  */</a>
+<span class="lineNum">     447 </span>            : const char *
+<span class="lineNum">     448 </span><span class="lineCov">        192 : rsa_get_info( int algo,</span>
+<span class="lineNum">     449 </span>            :               int *npkey, int *nskey, int *nenc, int *nsig, int *usage )
+<span class="lineNum">     450 </span>            : {
+<span class="lineNum">     451 </span><span class="lineCov">        192 :     *npkey = 2;</span>
+<span class="lineNum">     452 </span><span class="lineCov">        192 :     *nskey = 6;</span>
+<span class="lineNum">     453 </span><span class="lineCov">        192 :     *nenc = 1;</span>
+<span class="lineNum">     454 </span><span class="lineCov">        192 :     *nsig = 1;</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineCov">        192 :     switch( algo ) {</span>
+<span class="lineNum">     457 </span><span class="lineCov">         64 :       case 1: *usage = PUBKEY_USAGE_SIG | PUBKEY_USAGE_ENC; return &quot;RSA&quot;;</span>
+<span class="lineNum">     458 </span><span class="lineCov">         64 :       case 2: *usage = PUBKEY_USAGE_ENC; return &quot;RSA-E&quot;;</span>
+<span class="lineNum">     459 </span><span class="lineCov">         64 :       case 3: *usage = PUBKEY_USAGE_SIG; return &quot;RSA-S&quot;;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :       default:*usage = 0; return NULL;</span>
+<span class="lineNum">     461 </span>            :     }
+<span class="lineNum">     462 </span>            : }
+<span class="lineNum">     463 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

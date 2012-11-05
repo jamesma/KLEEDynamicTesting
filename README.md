@@ -39,4 +39,4 @@ Running KLEE using one symbolic file of size 6 bytes and marking `option` and `n
 Part 2.2
 ========
 
-One of KLEE's limitations is that KLEE cannot handle symbolic floating points. As a result, I have modified `p1.c` from part1, using float in place of int. Running KLEE generates only 1 test case. KLEE did not manage to cover all feasible paths. Directory containing modified `p1.c`: `/part2/cannot_cover_all_feasible_paths` 
+One of KLEE's limitations is that KLEE cannot handle symbolic floating points. As a result, I have modified `p1.c` from part1, using `float` in place of `int`. Running KLEE generates only _1_ test case. KLEE did not manage to cover all feasible paths. Directory containing modified `p1.c`: `/part2/cannot_cover_all_feasible_paths` 

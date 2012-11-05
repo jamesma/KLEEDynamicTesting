@@ -1,5 +1,8 @@
 #include "misc.h"
+#include "malloc_track.h"
 #include <assert.h>
+
+extern LLNode *head;
 
 /***********************************************************************/
 /*  FUNCTION:  void Assert(int assertion, char* error)  */
@@ -62,10 +65,13 @@ void * SafeMalloc(size_t size) {
 void NullFunction(void * junk) { ; }
 
 void * my_malloc(size_t size) {
-  return malloc(size);
+  void *result_ptr = malloc(size);
+  Assert(insertNode(&head, result_ptr), "my_malloc failed");
+  return result_ptr;
 }
 
 void   my_free(void* ptr) {
+  Assert(removeNode(&head, ptr), "my_free failed");
   free (ptr);
 }
 

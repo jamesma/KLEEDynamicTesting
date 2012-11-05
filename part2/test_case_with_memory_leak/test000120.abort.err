@@ -1,0 +1,7 @@
+Error: abort failure
+File: /u/data/u93/ma23/Purdue/cs490st/proj3/part2/misc.c
+Line: 28
+Stack: 
+	#0 00001490 in __user_main (argc=5, argv=21947160) at /u/data/u93/ma23/Purdue/cs490st/proj3/part2/misc.c:28
+	#1 00002357 in __uClibc_main (main=21641728, argc=5, argv=21947160, app_init=0, app_fini=0, rtld_fini=0, stack_end=0) at /home/pgbovine/klee-uclibc/libc/misc/internals/__uClibc_main.c:402
+	#2 00008068 in main (=5, =21947160)

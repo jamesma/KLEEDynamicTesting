@@ -21,7 +21,7 @@
 /*                variable name is gNewtonsConstant. */
 
 void Assert(int assertion, char* error);
-/*void * SafeMalloc(size_t size);*/
+void * SafeMalloc(size_t size);
 void * my_malloc(size_t size);
 void   my_free(void* ptr);
 void   my_check_leak();

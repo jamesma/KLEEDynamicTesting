@@ -1,6 +1,9 @@
 #include"red_black_tree.h"
+#include"malloc_track.h"
 #include<stdio.h>
 #include<ctype.h>
+
+LLNode *head;
 
 
 /*  this file has functions to test a red-black tree of integers */
@@ -38,6 +41,11 @@ int main(int argc, char** argv) {
   FILE* fp;
   int n=0;
   int i=0;
+  head = NULL;
+
+  /* Marking input as symbolic */
+  klee_make_symbolic(&option, sizeof(option), "option");
+  klee_make_symbolic(&newKey, sizeof(newKey), "newKey");
 
   if (argc != 2) {
     printf("Usage: %s infile\n", argv[0]);
@@ -61,67 +69,69 @@ int main(int argc, char** argv) {
     switch (option)
     {
       case 1:
-	{
-	  newInt = (int*)my_malloc(sizeof(int));
-	  *newInt = newKey;
-	  RBTreeInsert(tree,newInt,0);
-	}
-	break;
+      	{
+      	  newInt = (int*)my_malloc(sizeof(int));
+      	  *newInt = newKey;
+      	  RBTreeInsert(tree,newInt,0);
+      	}
+      	break;
       case 2:
-	{
-	  if ( ( newNode=RBExactQuery(tree,&newKey ) ) ) RBDelete(tree,newNode);/*assignment*/
-	}
-	break;
+      	{
+      	  if ( ( newNode=RBExactQuery(tree,&newKey ) ) ) RBDelete(tree,newNode);/*assignment*/
+      	}
+      	break;
       case 3:
-	{
-	  if ( ( newNode = RBExactQuery(tree,&newKey) ) ) {/*assignment*/
-	    printf("data found in tree at location %p\n",(void*)newNode);
-	  }
-	  else {
-	    printf("data not in tree\n");
-	  }
-	}
-	break;
+      	{
+      	  if ( ( newNode = RBExactQuery(tree,&newKey) ) ) {/*assignment*/
+      	    printf("data found in tree at location %p\n",(void*)newNode);
+      	  }
+      	  else {
+      	    printf("data not in tree\n");
+      	  }
+      	}
+      	break;
       case 4:
-	{
-	  if ( ( newNode = RBExactQuery(tree,&newKey) ) ) {/*assignment*/
-	    newNode=TreePredecessor(tree,newNode);
-	    if(tree->nil == newNode) {
-	      printf("there is no predecessor for that node (it is a minimum)\n");
-	    } else {
-	      printf("predecessor at location %p\n",(void*)newNode);
-	    }
-	  } else {
-	    printf("data not in tree\n");
-	  }
-	}
-	break;
+      	{
+      	  if ( ( newNode = RBExactQuery(tree,&newKey) ) ) {/*assignment*/
+      	    newNode=TreePredecessor(tree,newNode);
+      	    if(tree->nil == newNode) {
+      	      printf("there is no predecessor for that node (it is a minimum)\n");
+      	    } else {
+      	      printf("predecessor at location %p\n",(void*)newNode);
+      	    }
+      	  } else {
+      	    printf("data not in tree\n");
+      	  }
+      	}
+      	break;
       case 5:
-	{
-	  if ( (newNode = RBExactQuery(tree,&newKey) ) ) {
-	    newNode=TreeSuccessor(tree,newNode);
-	    if(tree->nil == newNode) {
-	      printf("there is no successor for that node (it is a maximum)\n");
-	    } else {
-	      printf("successor at location %p\n",(void*)newNode);
-	    }
-	  } else {
-	    printf("data not in tree\n");
-	  }
-	}
-	break;
+      	{
+      	  if ( (newNode = RBExactQuery(tree,&newKey) ) ) {
+      	    newNode=TreeSuccessor(tree,newNode);
+      	    if(tree->nil == newNode) {
+      	      printf("there is no successor for that node (it is a maximum)\n");
+      	    } else {
+      	      printf("successor at location %p\n",(void*)newNode);
+      	    }
+      	  } else {
+      	    printf("data not in tree\n");
+      	  }
+      	}
+      	break;
       case 6:
-	{
-	  RBTreePrint(tree);
-	}
-	break;
+      	{
+      	  RBTreePrint(tree);
+      	}
+      	break;
       default:
-	break;
+      	break;
     }
   }
 
   RBTreeDestroy(tree);
   fclose(fp);
+
+  Assert(isEmpty(&head), "not all memory is freed");
 
   return 0;
 }

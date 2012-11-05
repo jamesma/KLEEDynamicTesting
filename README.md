@@ -1,6 +1,8 @@
 KLEEDynamicTesting
 ==================
 
+Note to self: Remove `/gnupg-1.0.5` before making it public, it has a license on it!
+
 Author: Jun Yan Ma (ma23@purdue.edu)
 
 Project Description: ProjectDescript.pdf (http://www.cs.purdue.edu/homes/kim1051/cs490/proj3/description.html)

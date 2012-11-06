@@ -27,7 +27,7 @@ Script to initialize coverage, run g10/gpg and generate coverage report: `part1/
 
 Directory containing overall coverage report in HTML is not submitted as it is large in size. Instead overall coverage rate is shown below. A screenshot is also provided at: `/part1/gnupg-buggy/CoverageReport.png`
 
-                Hit           Total           Coverage
+Report:         Hit           Total           Coverage
 Lines:          1473          23915           6.2%
 Functions:      106           1176            9.0%
 

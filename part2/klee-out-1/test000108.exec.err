@@ -1,9 +1,0 @@
-Error: external call with symbolic argument: printf
-File: /u/data/u93/ma23/Purdue/cs490st/proj3/part2/test_red_black_tree.c
-Line: 24
-Stack: 
-	#0 00000826 in IntPrint (a=37691456) at /u/data/u93/ma23/Purdue/cs490st/proj3/part2/test_red_black_tree.c:24
-	#1 00000454 in InorderTreePrint (tree=37654896, x=38002720) at /u/data/u93/ma23/Purdue/cs490st/proj3/part2/red_black_tree.c:375
-	#2 00001458 in __user_main (argc=5, argv=31388048) at /u/data/u93/ma23/Purdue/cs490st/proj3/part2/red_black_tree.c:451
-	#3 00002357 in __uClibc_main (main=31083008, argc=5, argv=31388048, app_init=0, app_fini=0, rtld_fini=0, stack_end=0) at /home/pgbovine/klee-uclibc/libc/misc/internals/__uClibc_main.c:402
-	#4 00008068 in main (=5, =31388048)

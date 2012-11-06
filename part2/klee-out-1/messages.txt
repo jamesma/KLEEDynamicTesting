@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: klee_get_valuel
-KLEE: WARNING: executable has module level assembly (ignoring)
-KLEE: WARNING: calling external: syscall(54, 0, 21505, 37540464)
-KLEE: WARNING: calling __user_main with extra arguments.
-KLEE: WARNING: ioctl: (TCGETS) symbolic file, incomplete model
-KLEE: WARNING: calling external: printf(36912592, 38002720)
